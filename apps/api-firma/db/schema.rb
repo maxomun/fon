@@ -1,0 +1,327 @@
+# This file is auto-generated from the current state of the database. Instead
+# of editing this file, please use the migrations feature of Active Record to
+# incrementally modify your database, and then regenerate this schema definition.
+#
+# This file is the source Rails uses to define your schema when running `bin/rails
+# db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
+# be faster and is potentially less error prone than running all of your
+# migrations from scratch. Old migrations may fail to apply correctly if those
+# migrations use external dependencies or application code.
+#
+# It's strongly recommended that you check this file into your version control system.
+
+ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+
+  create_table "acteco_empresas", id: :integer, default: nil, comment: "Código de actividad económica del emisor relevante para el DTE.", force: :cascade do |t|
+    t.integer "empresa_id", null: false
+    t.integer "acteco_id", null: false
+
+    t.unique_constraint ["acteco_id", "empresa_id"], name: "uq_acteco_empresa"
+  end
+
+  create_table "actecos", id: { type: :integer, comment: "llave incremental", default: nil }, comment: "CÓDIGOS DE ACTIVIDAD ECONÓMICA", force: :cascade do |t|
+    t.string "codigo", limit: 6, null: false, comment: "Entero maximo de 6 de largo"
+    t.string "nombre", limit: 100, null: false, comment: "Nombre o descripcion del acteco."
+    t.boolean "afecto_iva", null: false
+    t.integer "categoria_tributaria", null: false
+    t.integer "grupo_acteco_id", null: false, comment: "llave foranea a grupo acteco."
+    t.boolean "disponible_internet", null: false
+  end
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
+    t.text "metadata"
+    t.bigint "byte_size", null: false
+    t.string "checksum", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "certificados", id: :serial, force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.datetime "fecha_adjuncion", precision: nil
+    t.boolean "vigente", null: false
+    t.datetime "fecha_caducacion", precision: nil
+    t.string "responsable", limit: 100
+    t.string "frase_clave", limit: 1000
+  end
+
+  create_table "clientes", id: { type: :integer, comment: "llave primaria", default: nil }, force: :cascade do |t|
+    t.string "rut", limit: 20
+    t.string "razon_social", limit: 250, null: false
+    t.string "giro", limit: 250, null: false
+    t.string "direccion", limit: 250, null: false
+    t.string "fonos", limit: 100, null: false
+    t.string "codigo_postal", limit: 100
+    t.string "email", limit: 100, null: false
+    t.decimal "descuento", precision: 10, scale: 2
+    t.integer "empresa_id", null: false
+
+    t.unique_constraint ["empresa_id", "rut"], name: "uq_clientes_rut_empresa"
+  end
+
+  create_table "documento_emitidos", id: :integer, default: nil, comment: "Documentos DTE, apunta a un documento en el sistema origen.", force: :cascade do |t|
+    t.integer "empresa_id", null: false, comment: "Codigo intenro de la empresa que emitio el documento (facturaon soporta asi multiples empresas)"
+    t.integer "folio", null: false, comment: "Numero de folio del DTE"
+    t.boolean "dte", null: false, comment: "Indica que el documento es emitido electronicamente, se agrega este campo para soportar migracion de datos de la empresa cuando no era emisor electronico."
+    t.boolean "manual", null: false, comment: "Indica un origen manual del documento ( se agrega para soportar migraciones de cuando la empresa no era emisor electronico )"
+    t.integer "tipo_habilitado_id", null: false, comment: "El tipo de documento es un tipo de documento habilitado para la empresa (en caso de DTEs no todos los documentos son habilitados siempre)"
+    t.string "rut_emisor", limit: 20, null: false, comment: "RUT de la empresa que emite el documento"
+    t.string "razon_social_emisor", limit: 250, null: false, comment: "Razon social de la empresa que emite el documento"
+    t.string "giro_emisor", limit: 250, null: false, comment: "Giro de la empresa que emite el documento"
+    t.string "direccion_emisor", limit: 250, null: false, comment: "Direccion de la empresa que emite el documento"
+    t.string "rut_receptor", limit: 20, null: false, comment: "RUT de la empresa que recepciona el documento"
+    t.string "razon_social_receptor", limit: 250, null: false, comment: "Razon social de la empresa que recepciona el documento"
+    t.string "giro_receptor", limit: 250, null: false, comment: "Giro de la empresa que recepciona el documento"
+    t.string "direccion_receptor", limit: 250, null: false, comment: "Direccion de la empresa que recepciona el documento"
+    t.string "descripcion", limit: 100, comment: "Glosa libre que permite ingreso de alguna explicacion o nota del documento."
+    t.string "ruta_imagen", limit: 250, comment: "...atributo en analisis: teniendo el xml siempre se debería poder generar la imagen."
+    t.integer "cliente_id", comment: "Para las emisiones autonomas es el fk a clientes."
+    t.integer "usuario_id", null: false, comment: "Que usuario genera el DTE."
+    t.boolean "ingreso_integrado", null: false, comment: "Indica si el origen proviene de un sistema externo integrado al facturaon."
+    t.boolean "ingreso_autonomo", null: false, comment: "Indica si el documento se origina en el propio facturador."
+    t.integer "referencia_id", null: false, comment: "PAra el caso de funcionamiento de facturaon integrado a otro sistema, relaciona el DTe al documento origen (el del sistema origen)."
+    t.integer "asociado_id", comment: "Indica que el documento hace refencia a otro DTE (ejemplo: caso nota credito de factura)"
+
+    t.unique_constraint ["ruta_imagen"], name: "uq_ruta_imagen"
+  end
+
+  create_table "documento_recibidos", id: :integer, default: nil, force: :cascade do |t|
+    t.integer "tipo_documento_id", null: false
+    t.integer "folio", null: false, comment: "Numero de folio del documento del proveedor, puede provenir de un DTE o de un documento manual."
+    t.string "rut_emisor", limit: 20
+    t.string "razon_social_emisor", limit: 250, null: false
+    t.string "giro_emisor", limit: 250, null: false
+    t.string "direccion", limit: 250, null: false
+    t.integer "proveedor_id", null: false
+    t.integer "empresa_id", null: false
+    t.integer "user_id", comment: "En casos donde hay ingreso manual de una factura"
+
+    t.unique_constraint ["proveedor_id", "tipo_documento_id", "folio"], name: "uq_documento_recibido"
+  end
+
+  create_table "empresas", id: :serial, comment: "El que usa el sistema para emitir DTEs, tiene sus clientes, sus documentos, proveedores,etc.", force: :cascade do |t|
+    t.string "rut", limit: 20, null: false
+    t.string "razon_social", limit: 250, null: false
+    t.string "giro", limit: 250, null: false
+    t.string "direccion", limit: 250, null: false
+    t.string "archivo_logo", limit: 200, comment: "Nombre del archivo de logo."
+    t.string "resolucion_timbre", limit: 250, null: false, comment: "Texto de numero de resolucion del SII para el timbre electronico (Ej: Resolucion 99 del 2015)"
+    t.string "nombre_fantasia", limit: 100, null: false
+    t.date "fecha_resolucion", null: false
+    t.integer "numero_resolucion", null: false
+    t.string "telefono2", limit: 20
+    t.string "telefono1", limit: 20
+    t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false
+  end
+
+  create_table "folios", id: :serial, force: :cascade do |t|
+    t.integer "numero", null: false
+    t.boolean "usado", default: false, null: false, comment: "indica si el numero de folio ya fue utilizado en un documento."
+    t.integer "rango_folio_id", null: false, comment: "Indica a que rango de folios pertenece el numero (FK)"
+    t.boolean "anulado", default: false, null: false, comment: "Si el numero de folio fue usado por un documento que fue anulado"
+    t.integer "empresa_id", null: false
+    t.integer "tipo_habilitado_id", null: false
+    t.boolean "reservado", default: false, null: false, comment: "Estadoque indica que el numero de folio esta en el proceso de uso por parte del un usuario, si el usuario aprueba el documento entonces se cambia a usado."
+    t.boolean "disponible", default: true, null: false, comment: "Estado incial del folio."
+
+    t.unique_constraint ["numero", "rango_folio_id"], name: "uq_folio_rango"
+    t.unique_constraint ["tipo_habilitado_id", "numero"], name: "uq_folio_tipo_habilitado"
+  end
+
+  create_table "grupo_actecos", id: :integer, default: nil, comment: "Agrupador de codigos actecos", force: :cascade do |t|
+    t.string "nombre", limit: 100, null: false
+  end
+
+  create_table "impuesto_valores", id: :integer, default: nil, comment: "Contiene los valores de los impuestos. El campo fecha es usado para detectar cual fue el valor xon que se genera la venta de un producto, la fecha indica desde cuandoes vigente el valor, una nueva tupla con fecha postrerior indica el periodo de vigencia del valor dl impuesto.", force: :cascade do |t|
+    t.integer "impuesto_id", null: false
+    t.float "valor", null: false, comment: "Valor del impuesto ( en % , 0-100)"
+    t.datetime "fecha_activacion", precision: nil, default: "1970-01-01 00:00:00", null: false, comment: "Fecha desde la que es valido  el valor del impuesto"
+    t.datetime "fecha_caducacion", precision: nil, comment: "Fecha en que caduca el valor del impues(no a´si el impuesto). Se usa para sopórtar cambios de valores de impuestos."
+  end
+
+  create_table "impuestos", id: { type: :integer, comment: "Llave ", default: nil }, comment: "Lista de impuestos que cubren todos los productos.", force: :cascade do |t|
+    t.string "nombre", limit: 200, null: false, comment: "nombre largo del impuesto"
+    t.string "abreviacion", limit: 50, null: false, comment: "Nombre corto del impuesto"
+  end
+
+  create_table "personas", id: { type: :serial, comment: "llave autoincremantada" }, comment: "datos personales", force: :cascade do |t|
+    t.string "uid", limit: 100
+    t.integer "user_id", null: false
+    t.string "nombres", limit: 250, null: false
+    t.string "apellido_paterno", limit: 250
+    t.string "apellido_materno", limit: 250
+    t.datetime "timestamp", precision: nil, default: -> { "now()" }, null: false
+
+    t.unique_constraint ["user_id"], name: "uq_personas"
+  end
+
+  create_table "producto_impuestos", id: :integer, default: nil, force: :cascade do |t|
+    t.integer "impuesto_id", null: false
+    t.integer "producto_id", null: false
+
+    t.unique_constraint ["impuesto_id", "producto_id"], name: "uq_producto_impuestos"
+  end
+
+  create_table "productos", id: :integer, default: nil, force: :cascade do |t|
+    t.string "codigo", limit: 50, null: false
+    t.string "nombre", limit: 250, null: false
+    t.integer "empresa_id", null: false
+    t.decimal "precio_unitario", precision: 10, scale: 2, null: false
+
+    t.unique_constraint ["codigo", "empresa_id"], name: "uq_productos_codigo"
+  end
+
+  create_table "proveedores", id: :integer, default: nil, force: :cascade do |t|
+    t.string "rut", limit: 12, null: false
+    t.string "razon_social", limit: 250, null: false
+    t.string "giro", limit: 250, null: false
+    t.string "direccion", limit: 250
+    t.integer "empresa_id", null: false, comment: "A que empresa pertenece el proveedor."
+
+    t.unique_constraint ["empresa_id", "rut"], name: "uq_proveedores"
+  end
+
+  create_table "rango_folios", id: :serial, force: :cascade do |t|
+    t.integer "empresa_id", null: false, comment: "Empresa (emisor) a la que pertenecen los folios"
+    t.string "td", limit: 10, null: false, comment: "Tipo documento SII (informativo)"
+    t.integer "d", null: false, comment: "Desde"
+    t.integer "h", null: false
+    t.datetime "fa", precision: nil, null: false, comment: "Fecha de autorizacion"
+    t.string "rsask", limit: 1000, null: false, comment: "RSA PRIVATE KEY"
+    t.string "rsapubk", limit: 1000, null: false, comment: "RSA PUBLIC KEY"
+    t.integer "tipo_habilitado_id", null: false
+    t.datetime "fecha_uso", precision: nil, comment: "Indica la ultima fecha en ue se uso el rango."
+    t.string "archivo", limit: 250, null: false, comment: "Nombre del archivo usado para la carga de la tupla."
+    t.string "username", null: false, comment: "Quien realizo la carga del archivo de folios autorizados CAF"
+    t.datetime "fecha_subida", precision: nil, null: false, comment: "Cuando se realiza la subida del archivo de folios al sistema."
+
+    t.unique_constraint ["archivo"], name: "uq_rango_folios_archivo"
+  end
+
+  create_table "refresh_tokens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "token", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "revoked_at"
+    t.string "user_agent"
+    t.string "ip_address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_refresh_tokens_on_expires_at"
+    t.index ["token"], name: "index_refresh_tokens_on_token", unique: true
+    t.index ["user_id", "revoked_at"], name: "index_refresh_tokens_on_user_id_and_revoked_at"
+    t.index ["user_id"], name: "index_refresh_tokens_on_user_id"
+  end
+
+  create_table "roles", id: :integer, default: nil, force: :cascade do |t|
+    t.string "codigo", limit: 100, null: false, comment: "nombre corto"
+    t.string "descripcion", limit: 200, null: false, comment: "nombre largo, mas explicativo"
+    t.boolean "esadmin", null: false, comment: "indica rol admin"
+  end
+
+  create_table "tipo_documentos", id: :integer, default: nil, force: :cascade do |t|
+    t.string "codigo", limit: 10, null: false
+    t.string "nombre", limit: 100, null: false
+    t.boolean "dte", null: false
+    t.boolean "manual", null: false
+
+    t.unique_constraint ["codigo", "dte"], name: "uq_codigos_dte"
+    t.unique_constraint ["codigo", "manual"], name: "uq_codigos_manual"
+  end
+
+  create_table "tipo_habilitados", id: :serial, comment: "Tipos de documentos habilitados ( validados por SII ) para la empresa.", force: :cascade do |t|
+    t.integer "empresa_id", null: false
+    t.integer "tipo_documento_id", null: false
+    t.datetime "fecha_habilitacion", precision: nil, null: false
+
+    t.unique_constraint ["tipo_documento_id", "empresa_id"], name: "uq_habilitados"
+  end
+
+  create_table "token_blacklists", force: :cascade do |t|
+    t.string "jti", null: false
+    t.datetime "exp", null: false
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["exp"], name: "index_token_blacklists_on_exp"
+    t.index ["jti"], name: "index_token_blacklists_on_jti", unique: true
+    t.index ["user_id"], name: "index_token_blacklists_on_user_id"
+  end
+
+  create_table "user_roles", id: :serial, comment: "roles asignados al usuario", force: :cascade do |t|
+    t.integer "rol_id", null: false
+    t.integer "user_id", null: false
+    t.datetime "timestamp", precision: nil, default: -> { "now()" }, null: false
+
+    t.unique_constraint ["user_id", "rol_id"], name: "uq_user_roles_user_id"
+  end
+
+  create_table "users", id: :serial, force: :cascade do |t|
+    t.string "password_digest", limit: 200, null: false
+    t.string "lenguaje", limit: 10, null: false, comment: "es, en, pl, etc"
+    t.integer "estado", null: false, comment: "0: inactivo 1: activo"
+    t.boolean "visible", default: true, null: false
+    t.string "email", limit: 200, null: false
+    t.integer "pais_id"
+    t.datetime "timestamp", precision: nil, default: -> { "now()" }, null: false
+    t.integer "empresa_id"
+    t.string "username", limit: 50, null: false
+
+    t.unique_constraint ["email"], name: "uq_usuarios_email"
+    t.unique_constraint ["username"], name: "uq_usuarios_username"
+  end
+
+  create_table "venta_detalles", id: :integer, default: nil, force: :cascade do |t|
+    t.integer "documento_emitido_id", null: false
+    t.string "item", limit: 250, null: false, comment: "Describe la entrada en el detalle de un DTE (corresponde al producto, servicio, etc..)"
+    t.decimal "cantidad", precision: 10, scale: 2, null: false, comment: "Cantidad del item."
+    t.decimal "descuento", precision: 10, scale: 2, default: "0.0", null: false, comment: "Descuento del item."
+    t.decimal "precio_unitario", precision: 10, scale: 2, null: false, comment: "PRecio unitario"
+    t.boolean "afecto", null: false, comment: "Indica si es afecto a impuesto."
+    t.decimal "impuesto", precision: 10, scale: 2, null: false, comment: "Porcentaje ( 0-99.99) de impuesto del afecto."
+    t.integer "referencia_detalle_id", comment: "referencia al documento originado en sistema que alimenta al  FO"
+    t.integer "producto_id", comment: "Indica el producto vendido, valido este campo para aquellos documentos emitidos en forma autonoma por facturaon (no integrado)"
+  end
+
+  add_foreign_key "acteco_empresas", "actecos", name: "fk_acteco_empresas_actecos"
+  add_foreign_key "actecos", "grupo_actecos", name: "fk_actecos_grupo_actecos"
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "certificados", "users", name: "fk_certificados_users"
+  add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
+  add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
+  add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
+  add_foreign_key "documento_emitidos", "users", column: "usuario_id", name: "fk_documento_ventas_usuarios"
+  add_foreign_key "documento_recibidos", "proveedores", column: "proveedor_id", name: "fk_documento_compras_proveedores"
+  add_foreign_key "documento_recibidos", "tipo_documentos", name: "fk_documento_compras_tipo_documentos"
+  add_foreign_key "documento_recibidos", "users", name: "fk_documento_compras_usuarios"
+  add_foreign_key "folios", "rango_folios", name: "fk_folios_rango_folios"
+  add_foreign_key "folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
+  add_foreign_key "impuesto_valores", "impuestos", name: "fk_impuesto_valores_impuestos"
+  add_foreign_key "personas", "users", name: "fk_personas_users"
+  add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos"
+  add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos"
+  add_foreign_key "rango_folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
+  add_foreign_key "refresh_tokens", "users"
+  add_foreign_key "tipo_habilitados", "tipo_documentos", name: "fk_tipo_habilitados_tipo_documentos"
+  add_foreign_key "token_blacklists", "users"
+  add_foreign_key "user_roles", "roles", column: "rol_id", name: "fk_user_roles_roles"
+  add_foreign_key "user_roles", "users", name: "fk_user_roles_users"
+  add_foreign_key "venta_detalles", "documento_emitidos", name: "fk_dte_documento_detalles_dte_documentos"
+  add_foreign_key "venta_detalles", "productos", name: "fk_venta_detalles_productos"
+end
