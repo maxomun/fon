@@ -14,8 +14,8 @@ class User < ApplicationRecord
   # Relaciones
   belongs_to :empresa, optional: true
   has_one :persona, dependent: :destroy
-  has_many :user_roles, dependent: :destroy
-  has_many :roles, through: :user_roles
+  has_many :user_roles, class_name: 'UserRol', dependent: :destroy
+  has_many :roles, through: :user_roles, source: :rol, class_name: 'Rol'
   has_many :certificados, dependent: :destroy
   has_many :refresh_tokens, dependent: :destroy
   has_many :token_blacklists, dependent: :destroy

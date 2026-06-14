@@ -4,7 +4,7 @@ class Rol < ApplicationRecord
   self.table_name = 'roles'
 
   # Relaciones
-  has_many :user_roles, foreign_key: :rol_id, dependent: :destroy
+  has_many :user_roles, class_name: 'UserRol', foreign_key: :rol_id, dependent: :destroy
   has_many :users, through: :user_roles
 
   # Validaciones

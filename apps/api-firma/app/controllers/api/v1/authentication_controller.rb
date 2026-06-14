@@ -16,7 +16,7 @@ module Api
           if user.activo?
             tokens = generate_tokens(user)
             render_success(
-              tokens,
+              tokens.merge(user: user_payload(user)),
               message: 'Inicio de sesión exitoso'
             )
           else
@@ -91,10 +91,12 @@ module Api
       end
 
       def find_user_by_credentials
+        scope = User.includes(:roles)
+
         if login_params[:email].present?
-          User.find_by(email: login_params[:email])
+          scope.find_by(email: login_params[:email])
         elsif login_params[:username].present?
-          User.find_by(username: login_params[:username])
+          scope.find_by(username: login_params[:username])
         end
       end
 
@@ -136,7 +138,7 @@ module Api
           lenguaje: user.lenguaje,
           empresa_id: user.empresa_id,
           empresa: user.empresa&.razon_social,
-          roles: user.roles.pluck(:codigo),
+          roles: roles_payload(user),
           persona: user.persona ? {
             nombres: user.persona.nombres,
             apellido_paterno: user.persona.apellido_paterno,
@@ -144,6 +146,16 @@ module Api
             nombre_completo: user.persona.nombre_completo
           } : nil
         }
+      end
+
+      def roles_payload(user)
+        user.roles.map do |rol|
+          {
+            codigo: rol.codigo,
+            descripcion: rol.descripcion,
+            esadmin: rol.esadmin
+          }
+        end
       end
 
       def set_current_user_for_refresh
