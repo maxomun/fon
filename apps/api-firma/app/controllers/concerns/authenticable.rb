@@ -61,19 +61,20 @@ module Authenticable
     render json: response, status: status
   end
 
-  def render_success(data = {}, status: :ok, message: nil)
+  def render_success(payload = {}, status: :ok, message: nil, **kwargs)
     response = { success: true }
     response[:message] = message if message
-    response.merge!(data)
+    response.merge!(payload) if payload.is_a?(Hash)
+    response.merge!(kwargs)
 
     render json: response, status: status
   end
 
   # Verificar si el usuario tiene un rol específico
   def authorize_role!(*allowed_roles)
-    unless current_user.roles.exists?(codigo: allowed_roles)
-      render_error('No tiene permisos para realizar esta acción', :forbidden, code: 'FORBIDDEN')
-    end
+    return if current_user.roles.exists?(codigo: allowed_roles)
+
+    render_error('No tiene permisos para realizar esta acción', :forbidden, code: 'FORBIDDEN')
   end
 
   # Verificar si es administrador

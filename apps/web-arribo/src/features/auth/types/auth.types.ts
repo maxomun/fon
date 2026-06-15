@@ -12,6 +12,12 @@ export interface AuthTokens {
   refresh_expires_at: string
 }
 
+export interface UserRole {
+  codigo: string
+  descripcion: string
+  esadmin: boolean
+}
+
 export interface UserProfile {
   id: number
   email: string
@@ -19,7 +25,7 @@ export interface UserProfile {
   lenguaje: string
   empresa_id: number | null
   empresa: string | null
-  roles: string[]
+  roles: UserRole[]
   persona: {
     nombres: string
     apellido_paterno: string

@@ -2,6 +2,9 @@
 
 class Empresa < ApplicationRecord
   self.table_name = 'empresas'
+  self.record_timestamps = false
+
+  before_update :set_fecha_actualizacion
 
   # Relaciones
   has_many :acteco_empresas, dependent: :destroy
@@ -35,4 +38,10 @@ class Empresa < ApplicationRecord
   validates :archivo_logo, length: { maximum: 200 }, allow_blank: true
   validates :telefono1, length: { maximum: 20 }, allow_blank: true
   validates :telefono2, length: { maximum: 20 }, allow_blank: true
+
+  private
+
+  def set_fecha_actualizacion
+    self.fecha_actualizacion = Time.current
+  end
 end

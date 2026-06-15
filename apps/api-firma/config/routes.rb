@@ -43,8 +43,9 @@ Rails.application.routes.draw do
         delete 'eliminar', to: 'rango_folios#eliminar'
       end
 
+      resources :empresas, only: [:index, :show, :create, :update, :destroy]
+
       # Aquí irán los recursos de la API
-      # resources :empresas
       # resources :clientes
       # resources :productos
       # etc.
