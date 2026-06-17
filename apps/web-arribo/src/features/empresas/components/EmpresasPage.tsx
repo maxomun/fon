@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { Alert, Button } from '@/components/ui'
+import { Alert, Button, ConfirmDeleteModal } from '@/components/ui'
 import { EmpresaFormPanel } from '@/features/empresas/components/EmpresaForm'
+import { EmpresaRowActions } from '@/features/empresas/components/EmpresaRowActions'
 import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Empresa, EmpresaInput } from '@/features/empresas/types/empresa.types'
 import { ApiError } from '@/services/apiClient'
@@ -17,6 +19,7 @@ function formatDate(value: string) {
 }
 
 export function EmpresasPage() {
+  const navigate = useNavigate()
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -25,6 +28,9 @@ export function EmpresasPage() {
   const [listError, setListError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [empresaToDelete, setEmpresaToDelete] = useState<Empresa | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const loadEmpresas = useCallback(async () => {
     setListError(null)
@@ -106,28 +112,40 @@ export function EmpresasPage() {
     }
   }
 
-  async function handleDelete(empresa: Empresa) {
-    const confirmed = window.confirm(
-      `¿Eliminar la empresa "${empresa.razon_social}"? Esta acción no se puede deshacer.`,
-    )
+  function openDeleteModal(empresa: Empresa) {
+    setEmpresaToDelete(empresa)
+    setDeleteError(null)
+  }
 
-    if (!confirmed) {
+  function closeDeleteModal() {
+    setEmpresaToDelete(null)
+    setDeleteError(null)
+    setIsDeleting(false)
+  }
+
+  async function confirmDelete() {
+    if (!empresaToDelete) {
       return
     }
 
+    setIsDeleting(true)
+    setDeleteError(null)
     setListError(null)
     setSuccessMessage(null)
 
     try {
-      const response = await empresasService.remove(empresa.id)
+      const response = await empresasService.remove(empresaToDelete.id)
       setSuccessMessage(response.message ?? 'Empresa eliminada exitosamente')
+      closeDeleteModal()
       await loadEmpresas()
     } catch (error) {
-      setListError(
+      setDeleteError(
         error instanceof ApiError
           ? error.message
           : 'No se pudo eliminar la empresa',
       )
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -201,20 +219,14 @@ export function EmpresasPage() {
                       <td>{empresa.nombre_fantasia}</td>
                       <td>{formatDate(empresa.fecha_resolucion)}</td>
                       <td>
-                        <div className="table-actions">
-                          <Button
-                            variant="secondary"
-                            onClick={() => openEditForm(empresa)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => void handleDelete(empresa)}
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
+                        <EmpresaRowActions
+                          empresa={empresa}
+                          onEdit={openEditForm}
+                          onDelete={openDeleteModal}
+                          onActecos={(item) =>
+                            navigate(`/empresas/${item.id}/actecos`)
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -224,6 +236,17 @@ export function EmpresasPage() {
           )}
         </section>
       ) : null}
+
+      <ConfirmDeleteModal
+        isOpen={empresaToDelete !== null}
+        title="Eliminar empresa"
+        itemName={empresaToDelete?.razon_social ?? ''}
+        description="Si la empresa tiene usuarios, documentos u otros registros asociados, no se podrá eliminar. Esta acción no se puede deshacer."
+        isDeleting={isDeleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteModal}
+      />
     </AppLayout>
   )
 }

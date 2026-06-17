@@ -171,6 +171,24 @@ p {
   font-size: 0.95rem;
 }
 
+.page-back-link {
+  margin-bottom: 1rem;
+}
+
+.page-back-link a {
+  color: #2563eb;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.page-back-link a:hover {
+  text-decoration: underline;
+}
+
+.actecos-search-panel {
+  margin-top: 1.25rem;
+}
+
 .panel-card {
   background: #fff;
   border-radius: 12px;
@@ -222,6 +240,84 @@ p {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.dropdown-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.dropdown-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.dropdown-menu__trigger:hover {
+  background: #f3f4f6;
+}
+
+.dropdown-menu__dots {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dropdown-menu__panel {
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-menu__item:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.dropdown-menu__item:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.dropdown-menu__item--danger {
+  color: #c0392b;
+}
+
+.dropdown-menu__item--danger:hover:not(:disabled) {
+  background: #fdecea;
+}
+
+.dropdown-menu__separator {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: #ececec;
+}
+
+.data-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .empresa-form__grid {
@@ -359,4 +455,74 @@ p {
 .alert-success {
   background: #ecfdf3;
   color: #15803d;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 440px;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.modal-dialog__title {
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+}
+
+.modal-dialog__description {
+  margin-bottom: 1rem;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.modal-dialog__description p {
+  margin: 0 0 0.5rem;
+}
+
+.modal-dialog__description p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-dialog__error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 0.9rem;
+}
+
+.modal-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #a93226;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

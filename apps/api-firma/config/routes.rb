@@ -43,7 +43,11 @@ Rails.application.routes.draw do
         delete 'eliminar', to: 'rango_folios#eliminar'
       end
 
-      resources :empresas, only: [:index, :show, :create, :update, :destroy]
+      resources :empresas, only: [:index, :show, :create, :update, :destroy] do
+        resources :actecos, only: [:index, :create, :destroy], controller: 'empresa_actecos'
+      end
+
+      resources :actecos, only: [:index]
 
       # Aquí irán los recursos de la API
       # resources :clientes

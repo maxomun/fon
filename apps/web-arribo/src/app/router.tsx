@@ -6,6 +6,7 @@ import { RoleProtectedRoute } from '@/features/auth/components/RoleProtectedRout
 import { LoginPage } from '@/features/auth/components/LoginPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { EmpresasPage } from '@/features/empresas/components/EmpresasPage'
+import { EmpresaActecosPage } from '@/features/empresas/components/EmpresaActecosPage'
 import { UsuariosPage } from '@/features/usuarios/components/UsuariosPage'
 
 function HomeRedirect() {
@@ -38,6 +39,16 @@ export function AppRouter() {
           <ProtectedRoute>
             <RoleProtectedRoute>
               <EmpresasPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/actecos"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <EmpresaActecosPage />
             </RoleProtectedRoute>
           </ProtectedRoute>
         }

@@ -1,4 +1,8 @@
 export { Alert } from './Alert'
 export { Button } from './Button'
+export { ConfirmDeleteModal } from './ConfirmDeleteModal'
+export { ConfirmDialog } from './ConfirmDialog'
+export { DropdownMenu } from './DropdownMenu'
+export type { DropdownMenuItem } from './DropdownMenu'
 export { Input } from './Input'
 export { LoadingScreen } from './LoadingScreen'
