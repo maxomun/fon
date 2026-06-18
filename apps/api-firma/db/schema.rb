@@ -52,7 +52,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   end
 
   create_table "certificados", id: :serial, force: :cascade do |t|
-    t.integer "user_id", null: false
+    t.integer "persona_autorizada_id", null: false
     t.datetime "fecha_adjuncion", precision: nil
     t.boolean "vigente", null: false
     t.datetime "fecha_caducacion", precision: nil
@@ -114,6 +114,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["proveedor_id", "tipo_documento_id", "folio"], name: "uq_documento_recibido"
   end
 
+  create_table "empresa_personas_autorizadas", id: :serial, force: :cascade do |t|
+    t.integer "empresa_id", null: false
+    t.integer "persona_autorizada_id", null: false
+    t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
+
+    t.unique_constraint ["empresa_id", "persona_autorizada_id"], name: "uq_empresa_persona_autorizada"
+  end
+
   create_table "empresas", id: :serial, comment: "El que usa el sistema para emitir DTEs, tiene sus clientes, sus documentos, proveedores,etc.", force: :cascade do |t|
     t.string "rut", limit: 20, null: false
     t.string "razon_social", limit: 250, null: false
@@ -128,6 +136,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.string "telefono1", limit: 20
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
     t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false
+    t.integer "pais_id", null: false, comment: "País donde opera la empresa. Define el catálogo de impuestos aplicables."
   end
 
   create_table "folios", id: :serial, force: :cascade do |t|
@@ -148,16 +157,43 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.string "nombre", limit: 100, null: false
   end
 
-  create_table "impuesto_valores", id: :integer, default: nil, comment: "Contiene los valores de los impuestos. El campo fecha es usado para detectar cual fue el valor xon que se genera la venta de un producto, la fecha indica desde cuandoes vigente el valor, una nueva tupla con fecha postrerior indica el periodo de vigencia del valor dl impuesto.", force: :cascade do |t|
+  create_table "impuesto_valores", id: :serial, comment: "Contiene los valores de los impuestos. El campo fecha es usado para detectar cual fue el valor xon que se genera la venta de un producto, la fecha indica desde cuandoes vigente el valor, una nueva tupla con fecha postrerior indica el periodo de vigencia del valor dl impuesto.", force: :cascade do |t|
     t.integer "impuesto_id", null: false
     t.float "valor", null: false, comment: "Valor del impuesto ( en % , 0-100)"
     t.datetime "fecha_activacion", precision: nil, default: "1970-01-01 00:00:00", null: false, comment: "Fecha desde la que es valido  el valor del impuesto"
     t.datetime "fecha_caducacion", precision: nil, comment: "Fecha en que caduca el valor del impues(no a´si el impuesto). Se usa para sopórtar cambios de valores de impuestos."
   end
 
-  create_table "impuestos", id: { type: :integer, comment: "Llave ", default: nil }, comment: "Lista de impuestos que cubren todos los productos.", force: :cascade do |t|
+  create_table "impuestos", id: :serial, comment: "Catálogo de impuestos por país. Cada impuesto tiene valores históricos en impuesto_valores.", force: :cascade do |t|
     t.string "nombre", limit: 200, null: false, comment: "nombre largo del impuesto"
     t.string "abreviacion", limit: 50, null: false, comment: "Nombre corto del impuesto"
+    t.integer "pais_id", null: false, comment: "País al que aplica este impuesto."
+
+    t.unique_constraint ["pais_id", "abreviacion"], name: "uq_impuestos_pais_abreviacion"
+  end
+
+  create_table "paises", id: :serial, force: :cascade do |t|
+    t.string "codigo", limit: 3, null: false, comment: "Código ISO del país (ej: CL, PE, AR)."
+    t.string "nombre", limit: 100, null: false, comment: "Nombre del país."
+    t.boolean "activo", default: true, null: false, comment: "Indica si el país está habilitado en el sistema."
+
+    t.unique_constraint ["codigo"], name: "uq_paises_codigo"
+  end
+
+  create_table "personas_autorizadas", id: :serial, force: :cascade do |t|
+    t.string "rut", limit: 20, null: false
+    t.string "nombres", limit: 250, null: false
+    t.string "apellido_paterno", limit: 250
+    t.string "apellido_materno", limit: 250
+    t.string "email", limit: 200, null: false
+    t.integer "estado", null: false
+    t.integer "user_id"
+    t.integer "orden", default: 1, null: false
+    t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false
+
+    t.unique_constraint ["email"], name: "uq_personas_autorizadas_email"
+    t.unique_constraint ["rut"], name: "uq_personas_autorizadas_rut"
   end
 
   create_table "personas", id: { type: :serial, comment: "llave autoincremantada" }, comment: "datos personales", force: :cascade do |t|
@@ -302,7 +338,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "acteco_empresas", "actecos", name: "fk_acteco_empresas_actecos"
   add_foreign_key "actecos", "grupo_actecos", name: "fk_actecos_grupo_actecos"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "certificados", "users", name: "fk_certificados_users"
+  add_foreign_key "certificados", "personas_autorizadas", name: "fk_certificados_personas_autorizadas"
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
   add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
@@ -310,10 +346,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "documento_recibidos", "proveedores", column: "proveedor_id", name: "fk_documento_compras_proveedores"
   add_foreign_key "documento_recibidos", "tipo_documentos", name: "fk_documento_compras_tipo_documentos"
   add_foreign_key "documento_recibidos", "users", name: "fk_documento_compras_usuarios"
+  add_foreign_key "empresa_personas_autorizadas", "empresas", name: "fk_empresa_personas_autorizadas_empresas"
+  add_foreign_key "empresa_personas_autorizadas", "personas_autorizadas", name: "fk_empresa_personas_autorizadas_personas"
+  add_foreign_key "empresas", "paises", name: "fk_empresas_paises"
   add_foreign_key "folios", "rango_folios", name: "fk_folios_rango_folios"
   add_foreign_key "folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
   add_foreign_key "impuesto_valores", "impuestos", name: "fk_impuesto_valores_impuestos"
+  add_foreign_key "impuestos", "paises", name: "fk_impuestos_paises"
   add_foreign_key "personas", "users", name: "fk_personas_users"
+  add_foreign_key "personas_autorizadas", "users", name: "fk_personas_autorizadas_users"
   add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos"
   add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos"
   add_foreign_key "rango_folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"

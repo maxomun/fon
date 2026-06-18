@@ -5,6 +5,7 @@ import { isAdministradorFon } from '@/features/auth/utils/roles'
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', adminOnly: false },
   { to: '/empresas', label: 'Empresas', adminOnly: true },
+  { to: '/impuestos', label: 'Impuestos', adminOnly: true },
   { to: '/usuarios', label: 'Usuarios', adminOnly: true },
 ] as const
 

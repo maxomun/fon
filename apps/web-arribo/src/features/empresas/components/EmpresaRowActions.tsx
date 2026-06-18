@@ -6,6 +6,7 @@ interface EmpresaRowActionsProps {
   onEdit: (empresa: Empresa) => void
   onDelete: (empresa: Empresa) => void
   onActecos?: (empresa: Empresa) => void
+  onPersonasAutorizadas?: (empresa: Empresa) => void
   onCertificados?: (empresa: Empresa) => void
 }
 
@@ -14,6 +15,7 @@ export function EmpresaRowActions({
   onEdit,
   onDelete,
   onActecos,
+  onPersonasAutorizadas,
   onCertificados,
 }: EmpresaRowActionsProps) {
   return (
@@ -30,6 +32,14 @@ export function EmpresaRowActions({
           label: 'Actividades económicas',
           disabled: !onActecos,
           onClick: onActecos ? () => onActecos(empresa) : undefined,
+        },
+        {
+          id: 'personas',
+          label: 'Personas autorizadas',
+          disabled: !onPersonasAutorizadas,
+          onClick: onPersonasAutorizadas
+            ? () => onPersonasAutorizadas(empresa)
+            : undefined,
         },
         {
           id: 'certificados',

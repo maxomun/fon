@@ -26,5 +26,6 @@ ActiveSupport::Inflector.inflections do |inflect|
   inflect.irregular 'valor', 'valores'
   inflect.irregular 'impuesto_valor', 'impuesto_valores'
   inflect.irregular 'proveedor', 'proveedores'
+  inflect.irregular 'pais', 'paises'
   inflect.irregular 'rol', 'roles'
 end

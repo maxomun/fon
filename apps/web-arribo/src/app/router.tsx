@@ -7,6 +7,9 @@ import { LoginPage } from '@/features/auth/components/LoginPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { EmpresasPage } from '@/features/empresas/components/EmpresasPage'
 import { EmpresaActecosPage } from '@/features/empresas/components/EmpresaActecosPage'
+import { EmpresaCertificadosPage } from '@/features/empresas/components/EmpresaCertificadosPage'
+import { EmpresaPersonasAutorizadasPage } from '@/features/empresas/components/EmpresaPersonasAutorizadasPage'
+import { ImpuestosPage } from '@/features/impuestos/components/ImpuestosPage'
 import { UsuariosPage } from '@/features/usuarios/components/UsuariosPage'
 
 function HomeRedirect() {
@@ -49,6 +52,36 @@ export function AppRouter() {
           <ProtectedRoute>
             <RoleProtectedRoute>
               <EmpresaActecosPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/personas-autorizadas"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <EmpresaPersonasAutorizadasPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/certificados"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <EmpresaCertificadosPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/impuestos"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <ImpuestosPage />
             </RoleProtectedRoute>
           </ProtectedRoute>
         }

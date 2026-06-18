@@ -7,6 +7,7 @@ class Empresa < ApplicationRecord
   before_update :set_fecha_actualizacion
 
   # Relaciones
+  belongs_to :pais
   has_many :acteco_empresas, dependent: :destroy
   has_many :actecos, through: :acteco_empresas
   has_many :users, dependent: :restrict_with_error
@@ -19,14 +20,20 @@ class Empresa < ApplicationRecord
   has_many :folios, dependent: :destroy
   has_many :documento_emitidos, dependent: :restrict_with_error
   has_many :documento_recibidos, dependent: :restrict_with_error
-  has_many :certificados, through: :users
+  has_many :empresa_personas_autorizadas,
+           class_name: 'EmpresaPersonaAutorizada',
+           dependent: :destroy
+  has_many :personas_autorizadas,
+           through: :empresa_personas_autorizadas,
+           source: :persona_autorizada
 
-  # Obtiene el certificado vigente de la empresa para firmar DTEs
+  # Certificado vigente para firmar DTEs (delega en Certificados::ResolverParaEmpresa).
   def certificado_vigente
-    certificados.vigentes.order(fecha_adjuncion: :desc).first
+    Certificados::ResolverParaEmpresa.call(empresa_id: id).certificado
   end
 
   # Validaciones
+  validates :pais_id, presence: true
   validates :rut, presence: true, length: { maximum: 20 }
   validates :razon_social, presence: true, length: { maximum: 250 }
   validates :giro, presence: true, length: { maximum: 250 }

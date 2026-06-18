@@ -4,7 +4,7 @@ class Certificado < ApplicationRecord
   self.table_name = 'certificados'
 
   # Relaciones
-  belongs_to :user
+  belongs_to :persona_autorizada
 
   # Active Storage - Archivos del certificado
   # archivo_crs: Certificado público (.crt o .pem)

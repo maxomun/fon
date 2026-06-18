@@ -8,7 +8,7 @@ module Api
 
       # GET /api/v1/empresas
       def index
-        empresas = Empresa.order(:razon_social)
+        empresas = Empresa.includes(:pais).order(:razon_social)
         render_success(data: empresas.map { |empresa| empresa_payload(empresa) })
       end
 
@@ -23,7 +23,7 @@ module Api
 
         if empresa.save
           render_success(
-            data: empresa_payload(empresa),
+            data: empresa_payload(Empresa.includes(:pais).find(empresa.id)),
             status: :created,
             message: 'Empresa creada exitosamente'
           )
@@ -65,11 +65,12 @@ module Api
       end
 
       def set_empresa
-        @empresa = Empresa.find(params[:id])
+        @empresa = Empresa.includes(:pais).find(params[:id])
       end
 
       def empresa_params
         params.require(:empresa).permit(
+          :pais_id,
           :rut,
           :razon_social,
           :nombre_fantasia,
@@ -87,6 +88,12 @@ module Api
       def empresa_payload(empresa)
         {
           id: empresa.id,
+          pais_id: empresa.pais_id,
+          pais: {
+            id: empresa.pais.id,
+            codigo: empresa.pais.codigo,
+            nombre: empresa.pais.nombre
+          },
           rut: empresa.rut,
           razon_social: empresa.razon_social,
           nombre_fantasia: empresa.nombre_fantasia,

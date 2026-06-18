@@ -3,192 +3,82 @@
 module Api
   module V1
     class CertificadosController < BaseController
-      # Temporalmente sin autenticación para pruebas
-      skip_before_action :authenticate_request!, only: [:crear, :listar, :verificar]
+      before_action :require_administrador_fon!
 
       # POST /api/v1/certificados/crear
-      # Sube un nuevo certificado para un usuario (y por ende, para su empresa)
       #
-      # Form-data esperado:
-      #   user_id: ID del usuario
-      #   archivo_crs: Archivo .crt o .pem (certificado público)
-      #   archivo_key: Archivo .key o .pem (clave privada)
-      #   frase_clave: Password de la clave privada
-      #
-      # Nota: Para convertir un .pfx/.p12:
-      #   openssl pkcs12 -in cert.pfx -out cert.crt -nokeys -clcerts
-      #   openssl pkcs12 -in cert.pfx -out cert.key -nocerts -nodes
-      #
+      # Form-data:
+      #   persona_autorizada_id: ID de la persona autorizada
+      #   empresa_id: (opcional) valida vínculo persona-empresa
+      #   archivo_crs: .crt o .pem
+      #   archivo_key: .key o .pem
+      #   frase_clave: password de la clave privada
       def crear
-        Rails.logger.info "=== CREAR CERTIFICADO: INICIO ==="
-        
-        # Validar parámetros requeridos
-        return error_parametros('user_id es requerido') unless params[:user_id].present?
+        return error_parametros('persona_autorizada_id es requerido') unless params[:persona_autorizada_id].present?
         return error_parametros('archivo_crs es requerido') unless params[:archivo_crs].present?
         return error_parametros('archivo_key es requerido') unless params[:archivo_key].present?
         return error_parametros('frase_clave es requerida') unless params[:frase_clave].present?
 
-        Rails.logger.info "=== PASO 1: Parámetros validados ==="
+        persona = PersonaAutorizada.find_by(id: params[:persona_autorizada_id])
+        return error_no_encontrado('Persona autorizada no encontrada') unless persona
 
-        # Buscar usuario
-        user = User.find_by(id: params[:user_id])
-        return error_no_encontrado('Usuario no encontrado') unless user
+        if params[:empresa_id].present?
+          empresa = Empresa.find_by(id: params[:empresa_id])
+          return error_no_encontrado('Empresa no encontrada') unless empresa
+          return error_validacion('La persona autorizada no está vinculada a esta empresa') unless persona_vinculada_a_empresa?(persona, empresa)
+        end
 
-        Rails.logger.info "=== PASO 2: Usuario encontrado: #{user.id} ==="
-
-        # Verificar que el usuario pertenece a una empresa
-        return error_validacion('El usuario no tiene empresa asignada') unless user.empresa_id.present?
-
-        Rails.logger.info "=== PASO 3: Usuario tiene empresa: #{user.empresa_id} ==="
+        certificado = nil
 
         Certificado.transaction do
-          Rails.logger.info "=== PASO 4: Inicio transaction ==="
-          
-          # Desactivar certificados anteriores del usuario
-          user.certificados.vigentes.update_all(vigente: false)
-          Rails.logger.info "=== PASO 5: Certificados anteriores desactivados ==="
+          persona.certificados.vigentes.update_all(vigente: false)
 
-          # Crear nuevo certificado
           certificado = Certificado.new(
-            user_id: user.id,
+            persona_autorizada: persona,
             fecha_adjuncion: Time.current,
             vigente: true,
             fecha_caducacion: nil,
             frase_clave: params[:frase_clave],
-            responsable: user.username
+            responsable: persona.nombre_completo.presence || persona.rut
           )
-          Rails.logger.info "=== PASO 6: Certificado instanciado ==="
 
-          # Leer contenido de los archivos
-          crs_content = params[:archivo_crs].read
-          key_content = params[:archivo_key].read
-          Rails.logger.info "=== PASO 7: Archivos leídos (crs: #{crs_content.bytesize} bytes, key: #{key_content.bytesize} bytes) ==="
-
-          # Guardar archivos manualmente (evitar problemas de Active Storage con directorios)
-          storage_root = Rails.root.join('tmp', 'storage')
-          
-          crs_key = SecureRandom.alphanumeric(28)
-          key_key = SecureRandom.alphanumeric(28)
-          
-          crs_path = storage_root.join(crs_key[0..1], crs_key[2..3], crs_key)
-          key_path = storage_root.join(key_key[0..1], key_key[2..3], key_key)
-          Rails.logger.info "=== PASO 8: Paths generados ==="
-          
-          # Crear directorios
-          FileUtils.mkdir_p(File.dirname(crs_path))
-          FileUtils.mkdir_p(File.dirname(key_path))
-          Rails.logger.info "=== PASO 9: Directorios creados ==="
-          
-          # Escribir archivos
-          File.binwrite(crs_path, crs_content)
-          File.binwrite(key_path, key_content)
-          Rails.logger.info "=== PASO 10: Archivos escritos en disco ==="
-          
-          # Crear blobs manualmente
-          crs_blob = ActiveStorage::Blob.create!(
-            key: crs_key,
-            filename: params[:archivo_crs].original_filename,
-            content_type: 'application/x-pem-file',
-            byte_size: crs_content.bytesize,
-            checksum: Digest::MD5.base64digest(crs_content),
-            service_name: 'test'
-          )
-          Rails.logger.info "=== PASO 11: Blob CRS creado: #{crs_blob.id} ==="
-          
-          key_blob = ActiveStorage::Blob.create!(
-            key: key_key,
-            filename: params[:archivo_key].original_filename,
-            content_type: 'application/x-pem-file',
-            byte_size: key_content.bytesize,
-            checksum: Digest::MD5.base64digest(key_content),
-            service_name: 'test'
-          )
-          Rails.logger.info "=== PASO 12: Blob KEY creado: #{key_blob.id} ==="
-          
-          # Asociar blobs al certificado
-          certificado.archivo_crs.attach(crs_blob)
-          certificado.archivo_key.attach(key_blob)
-          Rails.logger.info "=== PASO 13: Blobs asociados ==="
-          
-          # Guardar primero para persistir los attachments
+          attach_certificate_files!(certificado)
           certificado.save!
-          Rails.logger.info "=== PASO 14: Certificado guardado: #{certificado.id} ==="
-          
-          # Verificar que se puede cargar la clave privada
-          Rails.logger.info "=== PASO 15: Verificando clave privada... ==="
+
           unless certificado.clave_privada
-            Rails.logger.info "=== ERROR: Clave privada inválida ==="
-            # Eliminar el certificado si la clave no es válida
             certificado.destroy
             raise StandardError, 'No se pudo cargar la clave privada. Verifique la frase clave.'
           end
-          Rails.logger.info "=== PASO 16: Clave privada verificada OK ==="
-
-          render json: {
-            success: true,
-            message: 'Certificado creado exitosamente',
-            data: {
-              id: certificado.id,
-              user_id: certificado.user_id,
-              empresa_id: user.empresa_id,
-              fecha_adjuncion: certificado.fecha_adjuncion&.strftime('%Y-%m-%d %H:%M:%S'),
-              vigente: certificado.vigente,
-              responsable: certificado.responsable,
-              archivo_crs_adjunto: certificado.archivo_crs.attached?,
-              archivo_key_adjunto: certificado.archivo_key.attached?
-            }
-          }, status: :created
         end
+
+        render_success(
+          data: certificado_payload(certificado),
+          status: :created,
+          message: 'Certificado creado exitosamente'
+        )
       rescue ActiveRecord::RecordInvalid => e
         error_validacion(e.message)
       rescue StandardError => e
         error_interno("Error al crear certificado: #{e.message}")
       end
 
-      # GET /api/v1/certificados/listar
-      # Lista los certificados de un usuario o empresa
-      #
-      # Query params:
-      #   user_id: ID del usuario (opcional)
-      #   empresa_id: ID de la empresa (opcional)
-      #
+      # GET /api/v1/certificados/listar?persona_autorizada_id=&empresa_id=
       def listar
-        certificados =  if params[:empresa_id].present?
-                          empresa = Empresa.find_by(id: params[:empresa_id])
-                          return error_no_encontrado('Empresa no encontrada') unless empresa
+        certificados = if params[:empresa_id].present?
+                         listar_por_empresa
+                       elsif params[:persona_autorizada_id].present?
+                         listar_por_persona
+                       else
+                         return error_parametros('Debe proporcionar persona_autorizada_id o empresa_id')
+                       end
 
-                          empresa.certificados
-                        elsif params[:user_id].present?
-                          user = User.find_by(id: params[:user_id])
-                          return error_no_encontrado('Usuario no encontrado') unless user
+        return if performed?
 
-                          user.certificados
-                        else
-                          return error_parametros('Debe proporcionar user_id o empresa_id')
-                        end
-
-        render json: {
-          success: true,
-          data: certificados.map do |cert|
-            {
-              id: cert.id,
-              user_id: cert.user_id,
-              fecha_adjuncion: cert.fecha_adjuncion&.strftime('%Y-%m-%d'),
-              vigente: cert.vigente,
-              fecha_caducacion: cert.fecha_caducacion&.strftime('%Y-%m-%d'),
-              responsable: cert.responsable,
-              completo: cert.completo?
-            }
-          end
-        }
+        render_success(data: certificados.map { |cert| certificado_payload(cert) })
       end
 
       # POST /api/v1/certificados/verificar
-      # Verifica que un certificado esté correctamente configurado
-      #
-      # Body esperado:
-      #   certificado_id: ID del certificado a verificar
-      #
+      # Body: certificado_id
       def verificar
         return error_parametros('certificado_id es requerido') unless params[:certificado_id].present?
 
@@ -201,10 +91,10 @@ module Api
           clave_privada_valida: certificado.clave_privada.present?,
           certificado_x509_valido: certificado.certificado_x509.present?,
           vigente: certificado.vigente,
-          completo: certificado.completo?
+          completo: certificado.completo?,
+          caducado: certificado.caducado?
         }
 
-        # Información adicional si el certificado X509 es válido
         info_cert = {}
         if verificaciones[:certificado_x509_valido]
           x509 = certificado.certificado_x509
@@ -215,24 +105,36 @@ module Api
             not_after: x509.not_after&.strftime('%Y-%m-%d'),
             serial: x509.serial.to_s
           }
+          certificado.update!(fecha_caducacion: x509.not_after) if x509.not_after.present?
         end
 
-        todo_ok = verificaciones.values.all?
+        utilizable = Certificados::ResolverParaEmpresa.certificado_utilizable?(certificado)
+        todo_ok = verificaciones.values_at(
+          :archivo_crs_adjunto,
+          :archivo_key_adjunto,
+          :clave_privada_valida,
+          :certificado_x509_valido,
+          :vigente,
+          :completo
+        ).all? && !verificaciones[:caducado]
 
-        render json: {
-          success: true,
-          certificado_valido: todo_ok,
-          verificaciones: verificaciones,
-          info_certificado: info_cert,
-          mensaje: todo_ok ? 'Certificado listo para firmar' : 'Certificado incompleto o con errores'
-        }
+        render_success(
+          data: {
+            certificado_id: certificado.id,
+            persona_autorizada_id: certificado.persona_autorizada_id,
+            certificado_valido: todo_ok,
+            utilizable_para_firma: utilizable,
+            verificaciones: verificaciones,
+            info_certificado: info_cert
+          },
+          message: todo_ok ? 'Certificado listo para firmar' : 'Certificado incompleto o con errores'
+        )
       rescue StandardError => e
         error_interno("Error al verificar certificado: #{e.message}")
       end
 
       # DELETE /api/v1/certificados/eliminar
-      # Elimina (desactiva) un certificado
-      #
+      # Body/query: certificado_id
       def eliminar
         return error_parametros('certificado_id es requerido') unless params[:certificado_id].present?
 
@@ -241,31 +143,116 @@ module Api
 
         certificado.update!(vigente: false)
 
-        render json: {
-          success: true,
-          message: 'Certificado desactivado exitosamente'
-        }
+        render_success(message: 'Certificado desactivado exitosamente')
       rescue StandardError => e
         error_interno("Error al eliminar certificado: #{e.message}")
       end
 
       private
 
+      def require_administrador_fon!
+        authorize_role!('administrador_fon')
+      end
+
+      def listar_por_empresa
+        empresa = Empresa.find_by(id: params[:empresa_id])
+        return error_no_encontrado('Empresa no encontrada') unless empresa
+
+        persona_ids = empresa.personas_autorizadas.pluck(:id)
+        Certificado
+          .includes(:persona_autorizada)
+          .where(persona_autorizada_id: persona_ids)
+          .order(fecha_adjuncion: :desc)
+      end
+
+      def listar_por_persona
+        persona = PersonaAutorizada.find_by(id: params[:persona_autorizada_id])
+        return error_no_encontrado('Persona autorizada no encontrada') unless persona
+
+        persona.certificados.includes(:persona_autorizada).order(fecha_adjuncion: :desc)
+      end
+
+      def persona_vinculada_a_empresa?(persona, empresa)
+        empresa.personas_autorizadas.exists?(id: persona.id)
+      end
+
+      def certificado_payload(certificado)
+        persona = certificado.persona_autorizada
+
+        {
+          id: certificado.id,
+          persona_autorizada_id: certificado.persona_autorizada_id,
+          persona: {
+            id: persona.id,
+            rut: persona.rut,
+            nombre_completo: persona.nombre_completo,
+            orden: persona.orden
+          },
+          fecha_adjuncion: certificado.fecha_adjuncion&.strftime('%Y-%m-%d %H:%M:%S'),
+          vigente: certificado.vigente,
+          fecha_caducacion: certificado.fecha_caducacion&.strftime('%Y-%m-%d'),
+          responsable: certificado.responsable,
+          completo: certificado.completo?,
+          caducado: certificado.caducado?,
+          utilizable_para_firma: Certificados::ResolverParaEmpresa.certificado_utilizable?(certificado),
+          archivo_crs_adjunto: certificado.archivo_crs.attached?,
+          archivo_key_adjunto: certificado.archivo_key.attached?
+        }
+      end
+
+      def attach_certificate_files!(certificado)
+        crs_content = params[:archivo_crs].read
+        key_content = params[:archivo_key].read
+        storage_root = Rails.root.join('tmp', 'storage')
+
+        crs_key = SecureRandom.alphanumeric(28)
+        key_key = SecureRandom.alphanumeric(28)
+
+        crs_path = storage_root.join(crs_key[0..1], crs_key[2..3], crs_key)
+        key_path = storage_root.join(key_key[0..1], key_key[2..3], key_key)
+
+        FileUtils.mkdir_p(File.dirname(crs_path))
+        FileUtils.mkdir_p(File.dirname(key_path))
+        File.binwrite(crs_path, crs_content)
+        File.binwrite(key_path, key_content)
+
+        crs_blob = ActiveStorage::Blob.create!(
+          key: crs_key,
+          filename: params[:archivo_crs].original_filename,
+          content_type: 'application/x-pem-file',
+          byte_size: crs_content.bytesize,
+          checksum: Digest::MD5.base64digest(crs_content),
+          service_name: Rails.application.config.active_storage.service.to_s
+        )
+
+        key_blob = ActiveStorage::Blob.create!(
+          key: key_key,
+          filename: params[:archivo_key].original_filename,
+          content_type: 'application/x-pem-file',
+          byte_size: key_content.bytesize,
+          checksum: Digest::MD5.base64digest(key_content),
+          service_name: Rails.application.config.active_storage.service.to_s
+        )
+
+        certificado.archivo_crs.attach(crs_blob)
+        certificado.archivo_key.attach(key_blob)
+      end
+
       def error_parametros(mensaje)
-        render json: { success: false, error: mensaje }, status: :bad_request
+        render_error(mensaje, :bad_request, code: 'BAD_REQUEST')
       end
 
       def error_no_encontrado(mensaje)
-        render json: { success: false, error: mensaje }, status: :not_found
+        render_error(mensaje, :not_found, code: 'NOT_FOUND')
       end
 
       def error_validacion(mensaje)
-        render json: { success: false, error: mensaje }, status: :unprocessable_entity
+        render_error(mensaje, :unprocessable_entity, code: 'VALIDATION_ERROR')
       end
 
       def error_interno(mensaje)
         Rails.logger.error(mensaje)
-        render json: { success: false, error: mensaje }, status: :internal_server_error
+        render_error(mensaje, :internal_server_error, code: 'INTERNAL_ERROR')
       end
     end
   end

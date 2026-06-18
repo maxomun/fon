@@ -16,7 +16,7 @@ class User < ApplicationRecord
   has_one :persona, dependent: :destroy
   has_many :user_roles, class_name: 'UserRol', dependent: :destroy
   has_many :roles, through: :user_roles, source: :rol, class_name: 'Rol'
-  has_many :certificados, dependent: :destroy
+  has_one :persona_autorizada, dependent: :nullify
   has_many :refresh_tokens, dependent: :destroy
   has_many :token_blacklists, dependent: :destroy
   has_many :documento_emitidos, foreign_key: :usuario_id, dependent: :restrict_with_error

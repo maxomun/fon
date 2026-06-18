@@ -21,4 +21,12 @@ export const authenticatedClient = {
   delete<T>(path: string) {
     return apiClient.delete<T>(path, authOptions())
   },
+
+  postFormData<T>(path: string, formData: FormData) {
+    return apiClient.request<T>(path, {
+      method: 'POST',
+      body: formData,
+      token: tokenStorage.getAccessToken(),
+    })
+  },
 }

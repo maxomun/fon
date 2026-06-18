@@ -189,6 +189,16 @@ p {
   margin-top: 1.25rem;
 }
 
+.select-input,
+.field input[type='file'] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
 .panel-card {
   background: #fff;
   border-radius: 12px;
@@ -234,6 +244,10 @@ p {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #666;
+}
+
+.data-table__row--selected td {
+  background: #f0f7ff;
 }
 
 .table-actions {
@@ -475,6 +489,10 @@ p {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.modal-dialog--form {
+  max-width: 560px;
 }
 
 .modal-dialog__title {

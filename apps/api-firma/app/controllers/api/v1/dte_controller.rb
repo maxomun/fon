@@ -424,14 +424,17 @@ module Api
         empresa = Empresa.includes(:acteco_empresas, actecos: []).find_by(id: params[:empresa_id])
         return fallo_emision('Empresa no encontrada', fase: 'empresa', status: :not_found) unless empresa
 
-        certificado = empresa.certificado_vigente
-        unless certificado&.completo?
+        resolucion_certificado = resolver_certificado_firma(empresa)
+        unless resolucion_certificado.success?
           return fallo_emision(
-            'La empresa no tiene certificado vigente para firmar',
+            resolucion_certificado.error,
             fase: 'verificacion_certificado',
             status: :unprocessable_entity
           )
         end
+
+        certificado = resolucion_certificado.certificado
+        persona_autorizada = resolucion_certificado.persona_autorizada
 
         items_array = preparar_items(params[:items])
 
@@ -488,7 +491,8 @@ module Api
         resultado_firma = Dte::Firmador.call(
           xml_string: resultado_xml[:xml],
           empresa_id: empresa.id,
-          paginas: paginas_para_firma
+          paginas: paginas_para_firma,
+          certificado: certificado
         )
 
         unless resultado_firma[:success]
@@ -503,6 +507,7 @@ module Api
           success: true,
           empresa: empresa,
           certificado: certificado,
+          persona_autorizada: persona_autorizada,
           items_array: items_array,
           items_clasificados: resultado_clasificacion[:items],
           resultado_folios: resultado_folios,
@@ -555,13 +560,26 @@ module Api
       end
 
       def resumen_emision(resultado)
+        persona = resultado[:persona_autorizada]
+
         {
           empresa: resultado[:empresa].razon_social,
           tipo_documento: params[:tipo_documento],
           total_items: resultado[:items_array].count,
           total_paginas: resultado[:resultado_folios][:paginas].count,
-          certificado_usado: resultado[:certificado].id
+          certificado_usado: resultado[:certificado].id,
+          persona_autorizada_id: persona&.id,
+          persona_autorizada: persona&.nombre_completo,
+          persona_autorizada_rut: persona&.rut
         }
+      end
+
+      def resolver_certificado_firma(empresa)
+        Certificados::ResolverParaEmpresa.call(
+          empresa_id: empresa.id,
+          persona_autorizada_id: params[:persona_autorizada_id],
+          user_id: params[:user_id]
+        )
       end
 
       def documento_emitido_json(documento)

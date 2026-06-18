@@ -1,5 +1,13 @@
+export interface EmpresaPais {
+  id: number
+  codigo: string
+  nombre: string
+}
+
 export interface Empresa {
   id: number
+  pais_id: number
+  pais: EmpresaPais
   rut: string
   razon_social: string
   nombre_fantasia: string
@@ -17,7 +25,7 @@ export interface Empresa {
 
 export type EmpresaInput = Omit<
   Empresa,
-  'id' | 'fecha_creacion' | 'fecha_actualizacion'
+  'id' | 'pais' | 'fecha_creacion' | 'fecha_actualizacion'
 >
 
 export interface EmpresasListResponse {
@@ -36,7 +44,8 @@ export interface EmpresaDeleteResponse {
   message?: string
 }
 
-export const emptyEmpresaInput = (): EmpresaInput => ({
+export const emptyEmpresaInput = (paisId = 0): EmpresaInput => ({
+  pais_id: paisId,
   rut: '',
   razon_social: '',
   nombre_fantasia: '',
@@ -52,6 +61,7 @@ export const emptyEmpresaInput = (): EmpresaInput => ({
 
 export function empresaToInput(empresa: Empresa): EmpresaInput {
   return {
+    pais_id: empresa.pais_id,
     rut: empresa.rut,
     razon_social: empresa.razon_social,
     nombre_fantasia: empresa.nombre_fantasia,

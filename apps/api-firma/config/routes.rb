@@ -45,9 +45,20 @@ Rails.application.routes.draw do
 
       resources :empresas, only: [:index, :show, :create, :update, :destroy] do
         resources :actecos, only: [:index, :create, :destroy], controller: 'empresa_actecos'
+        resources :personas_autorizadas, only: [:index, :create, :destroy], controller: 'empresa_personas_autorizadas'
       end
 
+      resources :personas_autorizadas, only: [:index, :show, :create, :update, :destroy]
+
       resources :actecos, only: [:index]
+
+      resources :paises, only: [:index]
+
+      resources :impuestos, only: [:index, :show, :create, :update, :destroy] do
+        resources :valores,
+                  controller: 'impuesto_valores',
+                  only: [:index, :create, :update, :destroy]
+      end
 
       # Aquí irán los recursos de la API
       # resources :clientes

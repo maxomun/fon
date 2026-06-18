@@ -13,10 +13,11 @@ module Dte
       new(**params).call
     end
 
-    def initialize(xml_string:, empresa_id:, paginas:)
+    def initialize(xml_string:, empresa_id:, paginas:, certificado: nil)
       @xml_string = xml_string
       @empresa_id = empresa_id
       @paginas = paginas
+      @certificado = certificado
       @xml = nil
     end
 
@@ -27,12 +28,9 @@ module Dte
       @xml = Nokogiri::XML(@xml_string)
       @xml.encoding = 'ISO-8859-1'
       
-      # Obtener certificado de la empresa
-      empresa = Empresa.find(@empresa_id)
-      certificado = empresa.certificado_vigente
-      
-      unless certificado&.completo?
-        return { success: false, error: 'No hay certificado vigente para la empresa' }
+      certificado = certificado_para_firma
+      unless certificado
+        return { success: false, error: @error_resolucion_certificado || 'No hay certificado vigente para la empresa' }
       end
       
       Rails.logger.info "=== FIRMADOR: Certificado obtenido (firma vía xmlsec1) ==="
@@ -79,6 +77,18 @@ module Dte
     end
 
     private
+
+    def certificado_para_firma
+      return @certificado if @certificado
+
+      resolucion = Certificados::ResolverParaEmpresa.call(empresa_id: @empresa_id)
+      unless resolucion.success?
+        @error_resolucion_certificado = resolucion.error
+        return nil
+      end
+
+      @certificado = resolucion.certificado
+    end
 
     # Inserta el nodo CAF en el DD del TED
     def insertar_caf(doc_index, rango_folio_id)

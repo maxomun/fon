@@ -206,6 +206,7 @@ export function EmpresasPage() {
                   <tr>
                     <th>RUT</th>
                     <th>Razón social</th>
+                    <th>País</th>
                     <th>Nombre fantasía</th>
                     <th>Fecha resolución</th>
                     <th>Acciones</th>
@@ -216,6 +217,7 @@ export function EmpresasPage() {
                     <tr key={empresa.id}>
                       <td>{empresa.rut}</td>
                       <td>{empresa.razon_social}</td>
+                      <td>{empresa.pais?.nombre ?? '—'}</td>
                       <td>{empresa.nombre_fantasia}</td>
                       <td>{formatDate(empresa.fecha_resolucion)}</td>
                       <td>
@@ -225,6 +227,12 @@ export function EmpresasPage() {
                           onDelete={openDeleteModal}
                           onActecos={(item) =>
                             navigate(`/empresas/${item.id}/actecos`)
+                          }
+                          onPersonasAutorizadas={(item) =>
+                            navigate(`/empresas/${item.id}/personas-autorizadas`)
+                          }
+                          onCertificados={(item) =>
+                            navigate(`/empresas/${item.id}/certificados`)
                           }
                         />
                       </td>
