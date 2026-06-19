@@ -9,6 +9,8 @@ import { EmpresasPage } from '@/features/empresas/components/EmpresasPage'
 import { EmpresaActecosPage } from '@/features/empresas/components/EmpresaActecosPage'
 import { EmpresaCertificadosPage } from '@/features/empresas/components/EmpresaCertificadosPage'
 import { EmpresaPersonasAutorizadasPage } from '@/features/empresas/components/EmpresaPersonasAutorizadasPage'
+import { EmpresaTiposDocumentosPage } from '@/features/empresas/components/EmpresaTiposDocumentosPage'
+import { EmpresaRangosFoliosPage } from '@/features/empresas/components/EmpresaRangosFoliosPage'
 import { ImpuestosPage } from '@/features/impuestos/components/ImpuestosPage'
 import { UsuariosPage } from '@/features/usuarios/components/UsuariosPage'
 
@@ -72,6 +74,26 @@ export function AppRouter() {
           <ProtectedRoute>
             <RoleProtectedRoute>
               <EmpresaCertificadosPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/tipos-documentos"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <EmpresaTiposDocumentosPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/rangos-folios"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <EmpresaRangosFoliosPage />
             </RoleProtectedRoute>
           </ProtectedRoute>
         }

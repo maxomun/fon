@@ -228,6 +228,12 @@ export function EmpresasPage() {
                           onActecos={(item) =>
                             navigate(`/empresas/${item.id}/actecos`)
                           }
+                          onTiposDocumento={(item) =>
+                            navigate(`/empresas/${item.id}/tipos-documentos`)
+                          }
+                          onRangosFolios={(item) =>
+                            navigate(`/empresas/${item.id}/rangos-folios`)
+                          }
                           onPersonasAutorizadas={(item) =>
                             navigate(`/empresas/${item.id}/personas-autorizadas`)
                           }

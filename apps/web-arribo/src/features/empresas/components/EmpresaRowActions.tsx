@@ -6,6 +6,8 @@ interface EmpresaRowActionsProps {
   onEdit: (empresa: Empresa) => void
   onDelete: (empresa: Empresa) => void
   onActecos?: (empresa: Empresa) => void
+  onTiposDocumento?: (empresa: Empresa) => void
+  onRangosFolios?: (empresa: Empresa) => void
   onPersonasAutorizadas?: (empresa: Empresa) => void
   onCertificados?: (empresa: Empresa) => void
 }
@@ -15,6 +17,8 @@ export function EmpresaRowActions({
   onEdit,
   onDelete,
   onActecos,
+  onTiposDocumento,
+  onRangosFolios,
   onPersonasAutorizadas,
   onCertificados,
 }: EmpresaRowActionsProps) {
@@ -32,6 +36,18 @@ export function EmpresaRowActions({
           label: 'Actividades económicas',
           disabled: !onActecos,
           onClick: onActecos ? () => onActecos(empresa) : undefined,
+        },
+        {
+          id: 'tipos-documento',
+          label: 'Tipos de documento',
+          disabled: !onTiposDocumento,
+          onClick: onTiposDocumento ? () => onTiposDocumento(empresa) : undefined,
+        },
+        {
+          id: 'rangos-folios',
+          label: 'Rangos de folios (CAF)',
+          disabled: !onRangosFolios,
+          onClick: onRangosFolios ? () => onRangosFolios(empresa) : undefined,
         },
         {
           id: 'personas',

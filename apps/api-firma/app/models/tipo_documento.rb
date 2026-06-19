@@ -16,6 +16,7 @@ class TipoDocumento < ApplicationRecord
 
   # Scopes
   scope :dte, -> { where(dte: true) }
+  scope :habilitables, -> { dte }
   scope :manuales, -> { where(manual: true) }
 
   # Constantes - Códigos SII

@@ -1,14 +1,24 @@
 import { env } from '@/config/env'
 
+function formatApiErrorMessage(data: ApiResponse<unknown>) {
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    return data.errors.join('. ')
+  }
+
+  return data.message ?? 'Error en la solicitud'
+}
+
 export class ApiError extends Error {
   status: number
   code?: string
+  errors?: string[]
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, errors?: string[]) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.errors = errors
   }
 }
 
@@ -16,6 +26,7 @@ type ApiResponse<T> = T & {
   success?: boolean
   message?: string
   code?: string
+  errors?: string[]
 }
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
@@ -49,9 +60,10 @@ class ApiClient {
 
     if (!response.ok) {
       throw new ApiError(
-        data.message ?? 'Error en la solicitud',
+        formatApiErrorMessage(data),
         response.status,
         data.code,
+        data.errors,
       )
     }
 
