@@ -32,6 +32,24 @@ class Empresa < ApplicationRecord
     Certificados::ResolverParaEmpresa.call(empresa_id: id).certificado
   end
 
+  def certificado_estado_payload
+    resultado = Certificados::ResolverParaEmpresa.call(empresa_id: id)
+
+    if resultado.success?
+      certificado = resultado.certificado
+      return {
+        tiene_certificado_vigente: true,
+        fecha_caducacion_certificado: formatear_fecha_certificado(certificado.fecha_caducacion)
+      }
+    end
+
+    certificado_caducado = certificado_caducado_reciente
+    {
+      tiene_certificado_vigente: false,
+      fecha_caducacion_certificado: formatear_fecha_certificado(certificado_caducado&.fecha_caducacion)
+    }
+  end
+
   # Validaciones
   validates :pais_id, presence: true
   validates :rut, presence: true, length: { maximum: 20 }
@@ -47,6 +65,22 @@ class Empresa < ApplicationRecord
   validates :telefono2, length: { maximum: 20 }, allow_blank: true
 
   private
+
+  def certificado_caducado_reciente
+    persona_ids = personas_autorizadas.activas.pluck(:id)
+    return nil if persona_ids.empty?
+
+    Certificado
+      .where(persona_autorizada_id: persona_ids)
+      .order(fecha_adjuncion: :desc)
+      .detect(&:caducado?)
+  end
+
+  def formatear_fecha_certificado(fecha)
+    return nil if fecha.blank?
+
+    fecha.strftime('%Y-%m-%d')
+  end
 
   def set_fecha_actualizacion
     self.fecha_actualizacion = Time.current

@@ -334,6 +334,34 @@ p {
   white-space: nowrap;
 }
 
+.empresa-certificado-estado {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+}
+
+.empresa-certificado-estado--vigente {
+  color: #15803d;
+}
+
+.empresa-certificado-estado--sin-certificado {
+  color: #9ca3af;
+}
+
+.empresa-certificado-estado--caducado {
+  flex-direction: column;
+  gap: 0.1rem;
+  color: #9ca3af;
+}
+
+.empresa-certificado-estado__fecha {
+  color: #dc2626;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .empresa-form__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

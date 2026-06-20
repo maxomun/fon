@@ -21,11 +21,18 @@ export interface Empresa {
   archivo_logo: string | null
   fecha_creacion: string
   fecha_actualizacion: string
+  tiene_certificado_vigente: boolean
+  fecha_caducacion_certificado: string | null
 }
 
 export type EmpresaInput = Omit<
   Empresa,
-  'id' | 'pais' | 'fecha_creacion' | 'fecha_actualizacion'
+  | 'id'
+  | 'pais'
+  | 'fecha_creacion'
+  | 'fecha_actualizacion'
+  | 'tiene_certificado_vigente'
+  | 'fecha_caducacion_certificado'
 >
 
 export interface EmpresasListResponse {

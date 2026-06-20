@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, Button, ConfirmDeleteModal } from '@/components/ui'
+import { EmpresaCertificadoEstadoIcon } from '@/features/empresas/components/EmpresaCertificadoEstadoIcon'
 import { EmpresaFormPanel } from '@/features/empresas/components/EmpresaForm'
 import { EmpresaRowActions } from '@/features/empresas/components/EmpresaRowActions'
 import { empresasService } from '@/features/empresas/services/empresasService'
@@ -209,6 +210,7 @@ export function EmpresasPage() {
                     <th>País</th>
                     <th>Nombre fantasía</th>
                     <th>Fecha resolución</th>
+                    <th>Certificado</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -220,6 +222,9 @@ export function EmpresasPage() {
                       <td>{empresa.pais?.nombre ?? '—'}</td>
                       <td>{empresa.nombre_fantasia}</td>
                       <td>{formatDate(empresa.fecha_resolucion)}</td>
+                      <td>
+                        <EmpresaCertificadoEstadoIcon empresa={empresa} />
+                      </td>
                       <td>
                         <EmpresaRowActions
                           empresa={empresa}

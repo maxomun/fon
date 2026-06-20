@@ -107,7 +107,7 @@ module Api
           archivo_logo: empresa.archivo_logo,
           fecha_creacion: empresa.fecha_creacion,
           fecha_actualizacion: empresa.fecha_actualizacion
-        }
+        }.merge(empresa.certificado_estado_payload)
       end
 
       def render_validation_error(record)
