@@ -12,6 +12,14 @@ export interface AuthTokens {
   refresh_expires_at: string
 }
 
+export interface UserEmpresaResumen {
+  id: number
+  rut: string
+  razon_social: string
+  es_administrador: boolean
+  puede_firmar: boolean
+}
+
 export interface UserRole {
   codigo: string
   descripcion: string
@@ -23,23 +31,29 @@ export interface UserProfile {
   email: string
   username: string
   lenguaje: string
-  empresa_id: number | null
-  empresa: string | null
+  nombres?: string | null
+  apellido_paterno?: string | null
+  apellido_materno?: string | null
+  nombre_completo?: string | null
+  persona_autorizada_id?: number | null
+  acceso_global: boolean
+  empresas: UserEmpresaResumen[]
   roles: UserRole[]
-  persona: {
-    nombres: string
-    apellido_paterno: string
-    apellido_materno: string
-    nombre_completo: string
-  } | null
 }
 
 export interface LoginResponse extends AuthTokens {
   success: boolean
   message: string
+  user?: UserProfile
 }
 
 export interface MeResponse {
   success: boolean
   user: UserProfile
+}
+
+export interface RefreshResponse extends AuthTokens {
+  success: boolean
+  message: string
+  user?: UserProfile
 }

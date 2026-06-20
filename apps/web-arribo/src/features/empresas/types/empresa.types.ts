@@ -23,6 +23,7 @@ export interface Empresa {
   fecha_actualizacion: string
   tiene_certificado_vigente: boolean
   fecha_caducacion_certificado: string | null
+  es_administrador?: boolean
 }
 
 export type EmpresaInput = Omit<

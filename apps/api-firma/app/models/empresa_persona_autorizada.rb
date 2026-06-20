@@ -8,4 +8,11 @@ class EmpresaPersonaAutorizada < ApplicationRecord
   belongs_to :persona_autorizada
 
   validates :persona_autorizada_id, uniqueness: { scope: :empresa_id, message: 'ya está asignada a esta empresa' }
+  validates :es_administrador_empresa, inclusion: { in: [true, false] }
+
+  scope :administradores, -> { where(es_administrador_empresa: true) }
+
+  def administrador_empresa?
+    es_administrador_empresa
+  end
 end

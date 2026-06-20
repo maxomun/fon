@@ -14,7 +14,15 @@ interface AuthProviderProps {
 
 async function fetchCurrentUser(accessToken: string): Promise<UserProfile> {
   const response = await authService.me(accessToken)
-  return response.user
+  return normalizeUserProfile(response.user)
+}
+
+function normalizeUserProfile(user: UserProfile): UserProfile {
+  return {
+    ...user,
+    acceso_global: user.acceso_global ?? false,
+    empresas: user.empresas ?? [],
+  }
 }
 
 async function tryRefreshSession(): Promise<UserProfile | null> {
@@ -25,7 +33,8 @@ async function tryRefreshSession(): Promise<UserProfile | null> {
 
   const tokens = await authService.refresh(refreshToken)
   tokenStorage.save(tokens)
-  return fetchCurrentUser(tokens.access_token)
+  const currentUser = tokens.user ?? (await fetchCurrentUser(tokens.access_token))
+  return normalizeUserProfile(currentUser)
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -73,9 +82,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [restoreSession])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const tokens = await authService.login(credentials)
-    tokenStorage.save(tokens)
-    const currentUser = await fetchCurrentUser(tokens.access_token)
+    const response = await authService.login(credentials)
+    tokenStorage.save(response)
+    const currentUser = normalizeUserProfile(
+      response.user ?? (await fetchCurrentUser(response.access_token)),
+    )
     setUser(currentUser)
   }, [])
 

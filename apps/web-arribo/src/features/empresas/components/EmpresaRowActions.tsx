@@ -5,6 +5,7 @@ interface EmpresaRowActionsProps {
   empresa: Empresa
   onEdit: (empresa: Empresa) => void
   onDelete: (empresa: Empresa) => void
+  showFonActions?: boolean
   onActecos?: (empresa: Empresa) => void
   onTiposDocumento?: (empresa: Empresa) => void
   onRangosFolios?: (empresa: Empresa) => void
@@ -16,6 +17,7 @@ export function EmpresaRowActions({
   empresa,
   onEdit,
   onDelete,
+  showFonActions = false,
   onActecos,
   onTiposDocumento,
   onRangosFolios,
@@ -26,11 +28,15 @@ export function EmpresaRowActions({
     <DropdownMenu
       ariaLabel={`Opciones de ${empresa.razon_social}`}
       items={[
-        {
-          id: 'editar',
-          label: 'Editar',
-          onClick: () => onEdit(empresa),
-        },
+        ...(showFonActions
+          ? [
+              {
+                id: 'editar',
+                label: 'Editar',
+                onClick: () => onEdit(empresa),
+              },
+            ]
+          : []),
         {
           id: 'actecos',
           label: 'Actividades económicas',
@@ -57,18 +63,25 @@ export function EmpresaRowActions({
             ? () => onPersonasAutorizadas(empresa)
             : undefined,
         },
-        {
-          id: 'certificados',
-          label: 'Certificados',
-          disabled: !onCertificados,
-          onClick: onCertificados ? () => onCertificados(empresa) : undefined,
-        },
-        {
-          id: 'eliminar',
-          label: 'Eliminar',
-          variant: 'danger',
-          onClick: () => onDelete(empresa),
-        },
+        ...(showFonActions && onCertificados
+          ? [
+              {
+                id: 'certificados',
+                label: 'Certificados',
+                onClick: () => onCertificados(empresa),
+              },
+            ]
+          : []),
+        ...(showFonActions
+          ? [
+              {
+                id: 'eliminar',
+                label: 'Eliminar',
+                variant: 'danger' as const,
+                onClick: () => onDelete(empresa),
+              },
+            ]
+          : []),
       ]}
     />
   )

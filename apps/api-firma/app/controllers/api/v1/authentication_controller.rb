@@ -35,41 +35,34 @@ module Api
           return render_error('Refresh token requerido', :bad_request, code: 'REFRESH_TOKEN_REQUIRED')
         end
 
-        # Buscar el refresh token en la BD
         refresh_token = RefreshToken.active.find_by(token: refresh_token_string)
 
         if refresh_token.nil?
           return render_error('Refresh token inválido o expirado', :unauthorized, code: 'INVALID_REFRESH_TOKEN')
         end
 
-        user = refresh_token.user
+        user = user_scope.find(refresh_token.user_id)
 
         unless user.activo?
           return render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
         end
 
-        # Revocar el refresh token actual (rotación de tokens)
         refresh_token.revoke!
 
-        # Generar nuevos tokens
         tokens = generate_tokens(user)
 
         render_success(
-          tokens,
+          tokens.merge(user: user_payload(user)),
           message: 'Tokens renovados exitosamente'
         )
       end
 
       # DELETE /api/v1/auth/logout
       def logout
-        # Extraer token actual
         token = extract_token_from_header
 
         if token.present?
-          # Agregar access token a blacklist
           JsonWebToken.blacklist!(token)
-
-          # Revocar todos los refresh tokens del usuario
           RefreshToken.revoke_all_for_user!(current_user.id)
         end
 
@@ -90,8 +83,12 @@ module Api
         params.permit(:email, :username, :password)
       end
 
+      def user_scope
+        User.includes(:roles, persona_autorizada: :empresa_personas_autorizadas)
+      end
+
       def find_user_by_credentials
-        scope = User.includes(:roles)
+        scope = user_scope
 
         if login_params[:email].present?
           scope.find_by(email: login_params[:email])
@@ -101,13 +98,11 @@ module Api
       end
 
       def generate_tokens(user)
-        payload = token_payload(user)
+        payload = Users::ProfilePayload.token_claims(user)
 
-        # Generar access token (JWT)
         access_token = JsonWebToken.encode_access_token(payload)
         access_exp = JsonWebToken.expiration_time(access_token)
 
-        # Crear refresh token en BD
         refresh_token = user.refresh_tokens.create!
 
         {
@@ -120,42 +115,8 @@ module Api
         }
       end
 
-      def token_payload(user)
-        {
-          user_id: user.id,
-          email: user.email,
-          username: user.username,
-          empresa_id: user.empresa_id,
-          roles: user.roles.pluck(:codigo)
-        }
-      end
-
       def user_payload(user)
-        {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          lenguaje: user.lenguaje,
-          empresa_id: user.empresa_id,
-          empresa: user.empresa&.razon_social,
-          roles: roles_payload(user),
-          persona: user.persona ? {
-            nombres: user.persona.nombres,
-            apellido_paterno: user.persona.apellido_paterno,
-            apellido_materno: user.persona.apellido_materno,
-            nombre_completo: user.persona.nombre_completo
-          } : nil
-        }
-      end
-
-      def roles_payload(user)
-        user.roles.map do |rol|
-          {
-            codigo: rol.codigo,
-            descripcion: rol.descripcion,
-            esadmin: rol.esadmin
-          }
-        end
+        Users::ProfilePayload.call(user)
       end
 
       def set_current_user_for_refresh
@@ -180,8 +141,9 @@ module Api
           raise JsonWebToken::TokenInvalidError, 'Token revocado'
         end
 
-        user = User.find_by(id: payload[:user_id])
+        user = user_scope.find_by(id: payload[:user_id])
         raise JsonWebToken::TokenInvalidError, 'Usuario no encontrado' unless user
+        raise JsonWebToken::TokenInvalidError, 'Usuario inactivo' unless user.activo?
 
         user
       end

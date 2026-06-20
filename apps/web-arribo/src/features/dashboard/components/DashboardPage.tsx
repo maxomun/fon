@@ -1,9 +1,15 @@
 import { AppLayout } from '@/components/layout/AppLayout'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { formatRoles } from '@/features/auth/utils/roles'
+import {
+  displayUserName,
+  formatRoles,
+  getEmpresasAdministrables,
+  hasAccesoGlobal,
+} from '@/features/auth/utils/roles'
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const empresasAdministrables = getEmpresasAdministrables(user)
 
   return (
     <AppLayout>
@@ -11,16 +17,25 @@ export function DashboardPage() {
         <div>
           <h1>Dashboard</h1>
           <p className="page-header__subtitle">
-            {user?.persona?.nombre_completo ?? user?.email}, has iniciado sesión
-            correctamente.
+            {displayUserName(user) || user?.email}, has iniciado sesión correctamente.
           </p>
         </div>
       </div>
 
       <section className="panel-card">
         <h2>Bienvenido</h2>
-        {user?.empresa ? (
-          <p className="dashboard-meta">Empresa: {user.empresa}</p>
+        {hasAccesoGlobal(user) ? (
+          <p className="dashboard-meta">Acceso global a la plataforma FON.</p>
+        ) : null}
+        {empresasAdministrables.length > 0 ? (
+          <div className="dashboard-meta">
+            <p>Empresas que puede administrar:</p>
+            <ul>
+              {empresasAdministrables.map((empresa) => (
+                <li key={empresa.id}>{empresa.razon_social}</li>
+              ))}
+            </ul>
+          </div>
         ) : null}
         {user?.roles.length ? (
           <p className="dashboard-meta">Roles: {formatRoles(user)}</p>

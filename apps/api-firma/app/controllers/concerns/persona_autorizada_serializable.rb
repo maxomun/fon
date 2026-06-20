@@ -23,7 +23,8 @@ module PersonaAutorizadaSerializable
       fecha_creacion: persona.fecha_creacion,
       fecha_actualizacion: persona.fecha_actualizacion,
       certificado_vigente_id: certificado&.id,
-      tiene_certificado_vigente: certificado.present?
+      tiene_certificado_vigente: certificado.present?,
+      puede_eliminarse: persona.puede_eliminarse?
     }
 
     if include_empresas
@@ -41,7 +42,8 @@ module PersonaAutorizadaSerializable
 
   def persona_autorizada_asignada_payload(persona, asignacion: nil)
     persona_autorizada_payload(persona).merge(
-      fecha_asignacion: asignacion&.fecha_creacion
+      fecha_asignacion: asignacion&.fecha_creacion,
+      es_administrador_empresa: asignacion&.es_administrador_empresa || false
     )
   end
 

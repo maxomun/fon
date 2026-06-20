@@ -4,8 +4,9 @@ module Api
   module V1
     class EmpresaActecosController < BaseController
       include ActecoSerializable
+      include EmpresaAuthorizable
 
-      before_action :require_administrador_fon!
+      before_action :require_admin_empresa!
       before_action :set_empresa
 
       # GET /api/v1/empresas/:empresa_id/actecos
@@ -38,10 +39,6 @@ module Api
       end
 
       private
-
-      def require_administrador_fon!
-        authorize_role!('administrador_fon')
-      end
 
       def set_empresa
         @empresa = Empresa.find(params[:empresa_id])

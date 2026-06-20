@@ -3,18 +3,26 @@
 module Api
   module V1
     class EmpresasController < BaseController
-      before_action :require_administrador_fon!
+      include EmpresaAuthorizable
+
+      before_action :require_empresas_visibility!, only: [:index]
+      before_action :authorize_empresa_show!, only: [:show]
+      before_action :require_administrador_fon!, only: [:create, :update, :destroy]
       before_action :set_empresa, only: [:show, :update, :destroy]
 
       # GET /api/v1/empresas
       def index
-        empresas = Empresa.includes(:pais).order(:razon_social)
-        render_success(data: empresas.map { |empresa| empresa_payload(empresa) })
+        empresas = empresas_visibles.includes(:pais).order(:razon_social)
+        render_success(
+          data: empresas.map { |empresa| empresa_payload(empresa, es_administrador: es_administrador_de?(empresa)) }
+        )
       end
 
       # GET /api/v1/empresas/:id
       def show
-        render_success(data: empresa_payload(@empresa))
+        render_success(
+          data: empresa_payload(@empresa, es_administrador: es_administrador_de?(@empresa))
+        )
       end
 
       # POST /api/v1/empresas
@@ -23,7 +31,7 @@ module Api
 
         if empresa.save
           render_success(
-            data: empresa_payload(Empresa.includes(:pais).find(empresa.id)),
+            data: empresa_payload(Empresa.includes(:pais).find(empresa.id), es_administrador: true),
             status: :created,
             message: 'Empresa creada exitosamente'
           )
@@ -36,7 +44,7 @@ module Api
       def update
         if @empresa.update(empresa_params)
           render_success(
-            data: empresa_payload(@empresa),
+            data: empresa_payload(@empresa, es_administrador: es_administrador_de?(@empresa)),
             message: 'Empresa actualizada exitosamente'
           )
         else
@@ -60,12 +68,20 @@ module Api
 
       private
 
-      def require_administrador_fon!
-        authorize_role!('administrador_fon')
+      def empresas_visibles
+        if current_user.administrador_fon?
+          Empresa.all
+        else
+          current_user.empresas_como_administrador
+        end
+      end
+
+      def es_administrador_de?(empresa)
+        current_user.administrador_en_empresa?(empresa.id)
       end
 
       def set_empresa
-        @empresa = Empresa.includes(:pais).find(params[:id])
+        @empresa = empresas_visibles.includes(:pais).find(params[:id])
       end
 
       def empresa_params
@@ -85,7 +101,7 @@ module Api
         )
       end
 
-      def empresa_payload(empresa)
+      def empresa_payload(empresa, es_administrador: false)
         {
           id: empresa.id,
           pais_id: empresa.pais_id,
@@ -106,7 +122,8 @@ module Api
           telefono2: empresa.telefono2,
           archivo_logo: empresa.archivo_logo,
           fecha_creacion: empresa.fecha_creacion,
-          fecha_actualizacion: empresa.fecha_actualizacion
+          fecha_actualizacion: empresa.fecha_actualizacion,
+          es_administrador: es_administrador
         }.merge(empresa.certificado_estado_payload)
       end
 

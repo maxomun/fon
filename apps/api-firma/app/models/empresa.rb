@@ -10,7 +10,6 @@ class Empresa < ApplicationRecord
   belongs_to :pais
   has_many :acteco_empresas, dependent: :destroy
   has_many :actecos, through: :acteco_empresas
-  has_many :users, dependent: :restrict_with_error
   has_many :clientes, dependent: :destroy
   has_many :proveedores, dependent: :destroy
   has_many :productos, dependent: :destroy

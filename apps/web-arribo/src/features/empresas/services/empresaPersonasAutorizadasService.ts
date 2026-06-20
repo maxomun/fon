@@ -14,10 +14,32 @@ export const empresaPersonasAutorizadasService = {
     return authenticatedClient.get<PersonasAutorizadasListResponse>(base(empresaId))
   },
 
-  assign(empresaId: number, personaAutorizadaId: number) {
+  assign(
+    empresaId: number,
+    personaAutorizadaId: number,
+    options?: { esAdministradorEmpresa?: boolean },
+  ) {
     return authenticatedClient.post<PersonaAutorizadaResponse>(base(empresaId), {
-      persona_autorizada: { persona_autorizada_id: personaAutorizadaId },
+      persona_autorizada: {
+        persona_autorizada_id: personaAutorizadaId,
+        es_administrador_empresa: options?.esAdministradorEmpresa ?? false,
+      },
     })
+  },
+
+  updateAdminRole(
+    empresaId: number,
+    personaAutorizadaId: number,
+    esAdministradorEmpresa: boolean,
+  ) {
+    return authenticatedClient.patch<PersonaAutorizadaResponse>(
+      `${base(empresaId)}/${personaAutorizadaId}`,
+      {
+        persona_autorizada: {
+          es_administrador_empresa: esAdministradorEmpresa,
+        },
+      },
+    )
   },
 
   remove(empresaId: number, personaAutorizadaId: number) {

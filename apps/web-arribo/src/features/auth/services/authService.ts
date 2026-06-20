@@ -1,5 +1,10 @@
 import { apiClient } from '@/services/apiClient'
-import type { LoginCredentials, LoginResponse, MeResponse } from '@/features/auth/types/auth.types'
+import type {
+  LoginCredentials,
+  LoginResponse,
+  MeResponse,
+  RefreshResponse,
+} from '@/features/auth/types/auth.types'
 
 const AUTH_BASE = '/api/v1/auth'
 
@@ -20,7 +25,7 @@ export const authService = {
   },
 
   refresh(refreshToken: string) {
-    return apiClient.post<LoginResponse>(`${AUTH_BASE}/refresh`, {
+    return apiClient.post<RefreshResponse>(`${AUTH_BASE}/refresh`, {
       refresh_token: refreshToken,
     })
   },

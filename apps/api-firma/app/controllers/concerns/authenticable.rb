@@ -84,10 +84,17 @@ module Authenticable
     end
   end
 
-  # Verificar que el usuario pertenezca a la empresa
+  # Verificar que el usuario tenga acceso a la empresa (vinculado o administrador FON).
   def authorize_empresa!(empresa_id)
-    unless current_user.empresa_id == empresa_id.to_i
-      render_error('No tiene acceso a esta empresa', :forbidden, code: 'EMPRESA_FORBIDDEN')
-    end
+    return if current_user.vinculado_a_empresa?(empresa_id)
+
+    render_error('No tiene acceso a esta empresa', :forbidden, code: 'EMPRESA_FORBIDDEN')
+  end
+
+  # Verificar que el usuario pueda administrar datos de la empresa.
+  def authorize_admin_empresa!(empresa_id)
+    return if current_user.administrador_en_empresa?(empresa_id)
+
+    render_error('No tiene permisos para administrar esta empresa', :forbidden, code: 'EMPRESA_ADMIN_FORBIDDEN')
   end
 end

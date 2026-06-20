@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   facturaon-api:
     build: .
@@ -23,6 +21,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-}
       # CORS
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Usuario auto-creado al registrar persona autorizada
+      PERSONA_AUTORIZADA_DEFAULT_PASSWORD: ${PERSONA_AUTORIZADA_DEFAULT_PASSWORD:-}
     env_file:
       - .env
     stdin_open: true

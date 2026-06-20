@@ -45,7 +45,9 @@ Rails.application.routes.draw do
 
       resources :empresas, only: [:index, :show, :create, :update, :destroy] do
         resources :actecos, only: [:index, :create, :destroy], controller: 'empresa_actecos'
-        resources :personas_autorizadas, only: [:index, :create, :destroy], controller: 'empresa_personas_autorizadas'
+        resources :personas_autorizadas,
+                  only: [:index, :create, :update, :destroy],
+                  controller: 'empresa_personas_autorizadas'
         resources :tipos_habilitados,
                   only: [:index, :create, :update, :destroy],
                   controller: 'empresa_tipos_habilitados'

@@ -14,7 +14,9 @@ export interface PersonaAutorizada {
   fecha_actualizacion: string
   certificado_vigente_id: number | null
   tiene_certificado_vigente: boolean
+  puede_eliminarse?: boolean
   fecha_asignacion?: string
+  es_administrador_empresa?: boolean
 }
 
 export type PersonaAutorizadaInput = {
@@ -80,4 +82,8 @@ export function personaAutorizadaPayload(input: PersonaAutorizadaInput) {
       user_id: input.user_id ?? null,
     },
   }
+}
+
+export function puedeEliminarPersonaAutorizada(persona: PersonaAutorizada) {
+  return persona.puede_eliminarse === true
 }

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { formatRoles } from '@/features/auth/utils/roles'
+import { displayUserName, formatRoles, hasAccesoGlobal } from '@/features/auth/utils/roles'
 
 export function AppHeader() {
   const { user, logout } = useAuth()
@@ -12,25 +12,18 @@ export function AppHeader() {
     navigate('/login', { replace: true })
   }
 
-  const displayName =
-    user?.persona?.nombre_completo ?? user?.username ?? user?.email
+  const displayName = displayUserName(user)
   const rolesLabel = formatRoles(user)
 
   return (
     <header className="app-header">
       <div className="app-header__content">
         <div className="app-header__user-info">
-          {displayName ? (
-            <span className="app-header__name">{displayName}</span>
-          ) : null}
-          {user?.email ? (
-            <span className="app-header__email">{user.email}</span>
-          ) : null}
-          {rolesLabel ? (
-            <span className="app-header__roles">{rolesLabel}</span>
-          ) : null}
-          {user?.empresa ? (
-            <span className="app-header__empresa">{user.empresa}</span>
+          {displayName ? <span className="app-header__name">{displayName}</span> : null}
+          {user?.email ? <span className="app-header__email">{user.email}</span> : null}
+          {rolesLabel ? <span className="app-header__roles">{rolesLabel}</span> : null}
+          {hasAccesoGlobal(user) ? (
+            <span className="app-header__empresa">Administrador FON</span>
           ) : null}
         </div>
         <Button variant="secondary" onClick={handleLogout}>

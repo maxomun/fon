@@ -3,6 +3,7 @@ import { LoadingScreen } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute'
 import { RoleProtectedRoute } from '@/features/auth/components/RoleProtectedRoute'
+import { EmpresaAccessProtectedRoute } from '@/features/auth/components/EmpresaAccessProtectedRoute'
 import { LoginPage } from '@/features/auth/components/LoginPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { EmpresasPage } from '@/features/empresas/components/EmpresasPage'
@@ -42,9 +43,9 @@ export function AppRouter() {
         path="/empresas"
         element={
           <ProtectedRoute>
-            <RoleProtectedRoute>
+            <EmpresaAccessProtectedRoute>
               <EmpresasPage />
-            </RoleProtectedRoute>
+            </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -52,9 +53,9 @@ export function AppRouter() {
         path="/empresas/:id/actecos"
         element={
           <ProtectedRoute>
-            <RoleProtectedRoute>
+            <EmpresaAccessProtectedRoute>
               <EmpresaActecosPage />
-            </RoleProtectedRoute>
+            </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -62,9 +63,9 @@ export function AppRouter() {
         path="/empresas/:id/personas-autorizadas"
         element={
           <ProtectedRoute>
-            <RoleProtectedRoute>
+            <EmpresaAccessProtectedRoute>
               <EmpresaPersonasAutorizadasPage />
-            </RoleProtectedRoute>
+            </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -82,9 +83,9 @@ export function AppRouter() {
         path="/empresas/:id/tipos-documentos"
         element={
           <ProtectedRoute>
-            <RoleProtectedRoute>
+            <EmpresaAccessProtectedRoute>
               <EmpresaTiposDocumentosPage />
-            </RoleProtectedRoute>
+            </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
       />
@@ -92,9 +93,9 @@ export function AppRouter() {
         path="/empresas/:id/rangos-folios"
         element={
           <ProtectedRoute>
-            <RoleProtectedRoute>
+            <EmpresaAccessProtectedRoute>
               <EmpresaRangosFoliosPage />
-            </RoleProtectedRoute>
+            </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
       />

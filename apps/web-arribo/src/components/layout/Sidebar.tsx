@@ -1,19 +1,18 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { isAdministradorFon } from '@/features/auth/utils/roles'
+import { canAccessEmpresasModule, isAdministradorFon } from '@/features/auth/utils/roles'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', adminOnly: false },
-  { to: '/empresas', label: 'Empresas', adminOnly: true },
-  { to: '/impuestos', label: 'Impuestos', adminOnly: true },
-  { to: '/usuarios', label: 'Usuarios', adminOnly: true },
+  { to: '/dashboard', label: 'Dashboard', visible: () => true },
+  { to: '/empresas', label: 'Empresas', visible: canAccessEmpresasModule },
+  { to: '/impuestos', label: 'Impuestos', visible: isAdministradorFon },
+  { to: '/usuarios', label: 'Usuarios', visible: isAdministradorFon },
 ] as const
 
 export function Sidebar() {
   const { user } = useAuth()
-  const isAdmin = isAdministradorFon(user)
 
-  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin)
+  const visibleItems = navItems.filter((item) => item.visible(user))
 
   return (
     <aside className="sidebar">

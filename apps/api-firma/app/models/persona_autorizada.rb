@@ -46,6 +46,49 @@ class PersonaAutorizada < ApplicationRecord
     Certificados::ResolverParaEmpresa.certificado_vigente_de(self)
   end
 
+  def asignacion_en(empresa_id)
+    empresa_personas_autorizadas.find_by(empresa_id: empresa_id)
+  end
+
+  def vinculada_a_empresa?(empresa_id)
+    return false unless activa?
+
+    empresas.exists?(id: empresa_id)
+  end
+
+  def administrador_en_empresa?(empresa_id)
+    return false unless activa?
+
+    empresa_personas_autorizadas.administradores.exists?(empresa_id: empresa_id)
+  end
+
+  def empresas_como_administrador
+    Empresa
+      .joins(:empresa_personas_autorizadas)
+      .where(
+        empresa_personas_autorizadas: {
+          persona_autorizada_id: id,
+          es_administrador_empresa: true
+        }
+      )
+      .order(:razon_social)
+  end
+
+  def sincronizar_nombre_a_usuario!
+    return unless user
+
+    user.update!(
+      nombres: nombres,
+      apellido_paterno: apellido_paterno,
+      apellido_materno: apellido_materno,
+      email: email
+    )
+  end
+
+  def puede_eliminarse?
+    empresa_personas_autorizadas.none? && certificados.none?
+  end
+
   private
 
   def set_fecha_actualizacion

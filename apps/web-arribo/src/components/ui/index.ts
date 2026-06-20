@@ -1,5 +1,6 @@
 export { Alert } from './Alert'
 export { Button } from './Button'
+export { Checkbox } from './Checkbox'
 export { ConfirmDeleteModal } from './ConfirmDeleteModal'
 export { ConfirmDialog } from './ConfirmDialog'
 export { DropdownMenu } from './DropdownMenu'

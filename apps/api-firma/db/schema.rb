@@ -14,7 +14,44 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
-  create_table "acteco_empresas", id: :integer, default: nil, comment: "Código de actividad económica del emisor relevante para el DTE.", force: :cascade do |t|
+  create_table "_backup_empresa_personas_autorizadas", id: false, force: :cascade do |t|
+    t.integer "id"
+    t.integer "empresa_id"
+    t.integer "persona_autorizada_id"
+    t.datetime "fecha_creacion", precision: nil
+  end
+
+  create_table "_backup_personas", id: false, force: :cascade do |t|
+    t.integer "id"
+    t.string "uid", limit: 100
+    t.integer "user_id"
+    t.string "nombres", limit: 250
+    t.string "apellido_paterno", limit: 250
+    t.string "apellido_materno", limit: 250
+    t.datetime "timestamp", precision: nil
+  end
+
+  create_table "_backup_user_roles", id: false, force: :cascade do |t|
+    t.integer "id"
+    t.integer "rol_id"
+    t.integer "user_id"
+    t.datetime "timestamp", precision: nil
+  end
+
+  create_table "_backup_users", id: false, force: :cascade do |t|
+    t.integer "id"
+    t.string "password_digest", limit: 200
+    t.string "lenguaje", limit: 10
+    t.integer "estado"
+    t.boolean "visible"
+    t.string "email", limit: 200
+    t.integer "pais_id"
+    t.datetime "timestamp", precision: nil
+    t.integer "empresa_id"
+    t.string "username", limit: 50
+  end
+
+  create_table "acteco_empresas", id: :serial, comment: "Código de actividad económica del emisor relevante para el DTE.", force: :cascade do |t|
     t.integer "empresa_id", null: false
     t.integer "acteco_id", null: false
 
@@ -48,16 +85,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.bigint "byte_size", null: false
     t.string "checksum", null: false
     t.datetime "created_at", precision: nil, null: false
+    t.string "service_name", limit: 255
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
   create_table "certificados", id: :serial, force: :cascade do |t|
-    t.integer "persona_autorizada_id", null: false
     t.datetime "fecha_adjuncion", precision: nil
     t.boolean "vigente", null: false
     t.datetime "fecha_caducacion", precision: nil
     t.string "responsable", limit: 100
     t.string "frase_clave", limit: 1000
+    t.integer "persona_autorizada_id", null: false, comment: "Persona autorizada duena del certificado digital."
+    t.index ["persona_autorizada_id", "vigente", "fecha_adjuncion"], name: "idx_certificados_vigente_persona", order: { fecha_adjuncion: :desc }
+    t.index ["persona_autorizada_id"], name: "idx_certificados_persona_autorizada"
   end
 
   create_table "clientes", id: { type: :integer, comment: "llave primaria", default: nil }, force: :cascade do |t|
@@ -114,11 +154,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["proveedor_id", "tipo_documento_id", "folio"], name: "uq_documento_recibido"
   end
 
-  create_table "empresa_personas_autorizadas", id: :serial, force: :cascade do |t|
+  create_table "empresa_personas_autorizadas", id: :serial, comment: "Relacion N:M entre empresas y personas autorizadas para firmar.", force: :cascade do |t|
     t.integer "empresa_id", null: false
     t.integer "persona_autorizada_id", null: false
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
-
+    t.boolean "es_administrador_empresa", default: false, null: false, comment: "Indica si la persona autorizada puede administrar datos de esta empresa."
+    t.index ["empresa_id"], name: "idx_empresa_personas_autorizadas_empresa"
+    t.index ["persona_autorizada_id"], name: "idx_empresa_personas_autorizadas_persona"
     t.unique_constraint ["empresa_id", "persona_autorizada_id"], name: "uq_empresa_persona_autorizada"
   end
 
@@ -137,6 +179,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
     t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false
     t.integer "pais_id", null: false, comment: "País donde opera la empresa. Define el catálogo de impuestos aplicables."
+    t.index ["pais_id"], name: "idx_empresas_pais_id"
   end
 
   create_table "folios", id: :serial, force: :cascade do |t|
@@ -164,7 +207,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.datetime "fecha_caducacion", precision: nil, comment: "Fecha en que caduca el valor del impues(no a´si el impuesto). Se usa para sopórtar cambios de valores de impuestos."
   end
 
-  create_table "impuestos", id: :serial, comment: "Catálogo de impuestos por país. Cada impuesto tiene valores históricos en impuesto_valores.", force: :cascade do |t|
+  create_table "impuestos", id: { type: :serial, comment: "Llave " }, comment: "Catálogo de impuestos por país. Cada impuesto tiene valores históricos en impuesto_valores.", force: :cascade do |t|
     t.string "nombre", limit: 200, null: false, comment: "nombre largo del impuesto"
     t.string "abreviacion", limit: 50, null: false, comment: "Nombre corto del impuesto"
     t.integer "pais_id", null: false, comment: "País al que aplica este impuesto."
@@ -172,7 +215,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["pais_id", "abreviacion"], name: "uq_impuestos_pais_abreviacion"
   end
 
-  create_table "paises", id: :serial, force: :cascade do |t|
+  create_table "paises", id: :serial, comment: "Catálogo de países soportados por la plataforma.", force: :cascade do |t|
     t.string "codigo", limit: 3, null: false, comment: "Código ISO del país (ej: CL, PE, AR)."
     t.string "nombre", limit: 100, null: false, comment: "Nombre del país."
     t.boolean "activo", default: true, null: false, comment: "Indica si el país está habilitado en el sistema."
@@ -180,34 +223,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["codigo"], name: "uq_paises_codigo"
   end
 
-  create_table "personas_autorizadas", id: :serial, force: :cascade do |t|
+  create_table "personas_autorizadas", id: :serial, comment: "Personas naturales autorizadas a firmar DTE. Independientes del usuario de login.", force: :cascade do |t|
     t.string "rut", limit: 20, null: false
     t.string "nombres", limit: 250, null: false
     t.string "apellido_paterno", limit: 250
     t.string "apellido_materno", limit: 250
     t.string "email", limit: 200, null: false
-    t.integer "estado", null: false
-    t.integer "user_id"
+    t.integer "estado", null: false, comment: "0: inactivo, 1: activo"
     t.integer "orden", default: 1, null: false
+    t.integer "user_id", comment: "Opcional. Vinculo futuro con cuenta de usuario (users.id)."
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false
     t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false
-
+    t.index ["estado"], name: "idx_personas_autorizadas_estado"
     t.unique_constraint ["email"], name: "uq_personas_autorizadas_email"
     t.unique_constraint ["rut"], name: "uq_personas_autorizadas_rut"
   end
 
-  create_table "personas", id: { type: :serial, comment: "llave autoincremantada" }, comment: "datos personales", force: :cascade do |t|
-    t.string "uid", limit: 100
-    t.integer "user_id", null: false
-    t.string "nombres", limit: 250, null: false
-    t.string "apellido_paterno", limit: 250
-    t.string "apellido_materno", limit: 250
-    t.datetime "timestamp", precision: nil, default: -> { "now()" }, null: false
-
-    t.unique_constraint ["user_id"], name: "uq_personas"
-  end
-
-  create_table "producto_impuestos", id: :integer, default: nil, force: :cascade do |t|
+  create_table "producto_impuestos", id: :serial, force: :cascade do |t|
     t.integer "impuesto_id", null: false
     t.integer "producto_id", null: false
 
@@ -316,8 +348,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.string "email", limit: 200, null: false
     t.integer "pais_id"
     t.datetime "timestamp", precision: nil, default: -> { "now()" }, null: false
-    t.integer "empresa_id"
     t.string "username", limit: 50, null: false
+    t.string "nombres", limit: 250
+    t.string "apellido_paterno", limit: 250
+    t.string "apellido_materno", limit: 250
 
     t.unique_constraint ["email"], name: "uq_usuarios_email"
     t.unique_constraint ["username"], name: "uq_usuarios_username"
@@ -338,22 +372,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "acteco_empresas", "actecos", name: "fk_acteco_empresas_actecos"
   add_foreign_key "actecos", "grupo_actecos", name: "fk_actecos_grupo_actecos"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "certificados", "personas_autorizadas", name: "fk_certificados_personas_autorizadas"
+  add_foreign_key "certificados", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_certificados_personas_autorizadas"
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
   add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
   add_foreign_key "documento_emitidos", "users", column: "usuario_id", name: "fk_documento_ventas_usuarios"
-  add_foreign_key "documento_recibidos", "proveedores", column: "proveedor_id", name: "fk_documento_compras_proveedores"
+  add_foreign_key "documento_recibidos", "proveedores", name: "fk_documento_compras_proveedores"
   add_foreign_key "documento_recibidos", "tipo_documentos", name: "fk_documento_compras_tipo_documentos"
   add_foreign_key "documento_recibidos", "users", name: "fk_documento_compras_usuarios"
   add_foreign_key "empresa_personas_autorizadas", "empresas", name: "fk_empresa_personas_autorizadas_empresas"
-  add_foreign_key "empresa_personas_autorizadas", "personas_autorizadas", name: "fk_empresa_personas_autorizadas_personas"
+  add_foreign_key "empresa_personas_autorizadas", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_empresa_personas_autorizadas_personas"
   add_foreign_key "empresas", "paises", name: "fk_empresas_paises"
   add_foreign_key "folios", "rango_folios", name: "fk_folios_rango_folios"
   add_foreign_key "folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
   add_foreign_key "impuesto_valores", "impuestos", name: "fk_impuesto_valores_impuestos"
   add_foreign_key "impuestos", "paises", name: "fk_impuestos_paises"
-  add_foreign_key "personas", "users", name: "fk_personas_users"
   add_foreign_key "personas_autorizadas", "users", name: "fk_personas_autorizadas_users"
   add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos"
   add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos"
@@ -361,7 +394,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "refresh_tokens", "users"
   add_foreign_key "tipo_habilitados", "tipo_documentos", name: "fk_tipo_habilitados_tipo_documentos"
   add_foreign_key "token_blacklists", "users"
-  add_foreign_key "user_roles", "roles", column: "rol_id", name: "fk_user_roles_roles"
+  add_foreign_key "user_roles", "roles", name: "fk_user_roles_roles"
   add_foreign_key "user_roles", "users", name: "fk_user_roles_users"
   add_foreign_key "venta_detalles", "documento_emitidos", name: "fk_dte_documento_detalles_dte_documentos"
   add_foreign_key "venta_detalles", "productos", name: "fk_venta_detalles_productos"

@@ -4,6 +4,7 @@ module Api
   module V1
     class PersonasAutorizadasController < BaseController
       include PersonaAutorizadaSerializable
+      include EmpresaAuthorizable
 
       before_action :require_administrador_fon!
       before_action :set_persona_autorizada, only: [:show, :update, :destroy]
@@ -39,22 +40,33 @@ module Api
 
       # POST /api/v1/personas_autorizadas
       def create
-        persona = PersonaAutorizada.new(persona_autorizada_params)
+        resultado = PersonasAutorizadas::Crear.call(
+          attributes: persona_autorizada_params_for_create,
+          password: params.dig(:persona_autorizada, :password)
+        )
 
-        if persona.save
+        if resultado.success?
           render_success(
-            data: persona_autorizada_payload(persona),
+            data: persona_autorizada_payload(resultado.persona_autorizada),
             status: :created,
             message: 'Persona autorizada creada exitosamente'
           )
         else
-          render_persona_validation_error(persona)
+          render_error(
+            'Error al crear persona autorizada',
+            :unprocessable_entity,
+            code: 'VALIDATION_ERROR',
+            errors: resultado.errors
+          )
         end
       end
 
       # PATCH/PUT /api/v1/personas_autorizadas/:id
       def update
-        if @persona_autorizada.update(persona_autorizada_params)
+        if @persona_autorizada.update(persona_autorizada_params_for_update)
+          asegurar_usuario_vinculado!
+          return if performed?
+
           render_success(
             data: persona_autorizada_payload(@persona_autorizada, include_empresas: true),
             message: 'Persona autorizada actualizada exitosamente'
@@ -66,6 +78,14 @@ module Api
 
       # DELETE /api/v1/personas_autorizadas/:id
       def destroy
+        unless @persona_autorizada.puede_eliminarse?
+          return render_error(
+            'No se puede eliminar la persona autorizada porque tiene empresas o certificados asociados',
+            :unprocessable_entity,
+            code: 'DELETE_RESTRICTED'
+          )
+        end
+
         if @persona_autorizada.destroy
           render_success(message: 'Persona autorizada eliminada exitosamente')
         else
@@ -80,33 +100,51 @@ module Api
 
       private
 
-      def require_administrador_fon!
-        authorize_role!('administrador_fon')
-      end
-
       def set_persona_autorizada
         @persona_autorizada = PersonaAutorizada.find(params[:id])
       end
 
-      def persona_autorizada_params
-        permitted = params.require(:persona_autorizada).permit(
+      def persona_autorizada_params_for_create
+        permitted = persona_autorizada_base_params
+        permitted[:estado] = PersonaAutorizada::ESTADO_ACTIVO if permitted[:estado].blank?
+        permitted[:orden] = 1 if permitted[:orden].blank?
+        permitted
+      end
+
+      def persona_autorizada_params_for_update
+        persona_autorizada_base_params
+      end
+
+      def persona_autorizada_base_params
+        params.require(:persona_autorizada).permit(
           :rut,
           :nombres,
           :apellido_paterno,
           :apellido_materno,
           :email,
           :estado,
-          :orden,
-          :user_id
+          :orden
         )
+      end
 
-        if action_name == 'create'
-          permitted[:estado] = PersonaAutorizada::ESTADO_ACTIVO if permitted[:estado].blank?
-          permitted[:orden] = 1 if permitted[:orden].blank?
+      def asegurar_usuario_vinculado!
+        if @persona_autorizada.user.present?
+          @persona_autorizada.sincronizar_nombre_a_usuario!
+          return
         end
 
-        permitted[:user_id] = nil if permitted.key?(:user_id) && permitted[:user_id].blank?
-        permitted
+        resultado = PersonasAutorizadas::ProvisionarUsuario.call(
+          persona_autorizada: @persona_autorizada,
+          password: params.dig(:persona_autorizada, :password)
+        )
+        return if resultado.success?
+
+        render_error(
+          'Persona actualizada pero no se pudo provisionar el usuario',
+          :unprocessable_entity,
+          code: 'VALIDATION_ERROR',
+          errors: resultado.errors
+        )
       end
     end
   end

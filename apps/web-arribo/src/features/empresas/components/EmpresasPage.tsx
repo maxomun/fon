@@ -7,6 +7,8 @@ import { EmpresaFormPanel } from '@/features/empresas/components/EmpresaForm'
 import { EmpresaRowActions } from '@/features/empresas/components/EmpresaRowActions'
 import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Empresa, EmpresaInput } from '@/features/empresas/types/empresa.types'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { hasAccesoGlobal } from '@/features/auth/utils/roles'
 import { ApiError } from '@/services/apiClient'
 
 type ViewMode = 'list' | 'create' | 'edit'
@@ -21,6 +23,8 @@ function formatDate(value: string) {
 
 export function EmpresasPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isFonAdmin = hasAccesoGlobal(user)
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -167,7 +171,7 @@ export function EmpresasPage() {
             Administra las empresas emisoras de documentos tributarios.
           </p>
         </div>
-        {viewMode === 'list' ? (
+        {viewMode === 'list' && isFonAdmin ? (
           <Button onClick={openCreateForm}>Nueva empresa</Button>
         ) : null}
       </div>
@@ -211,12 +215,20 @@ export function EmpresasPage() {
                     <th>Nombre fantasía</th>
                     <th>Fecha resolución</th>
                     <th>Certificado</th>
+                    {!isFonAdmin ? <th>Mi rol</th> : null}
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {empresas.map((empresa) => (
-                    <tr key={empresa.id}>
+                    <tr
+                      key={empresa.id}
+                      className={
+                        !isFonAdmin && empresa.es_administrador
+                          ? 'data-table__row--selected'
+                          : undefined
+                      }
+                    >
                       <td>{empresa.rut}</td>
                       <td>{empresa.razon_social}</td>
                       <td>{empresa.pais?.nombre ?? '—'}</td>
@@ -225,9 +237,19 @@ export function EmpresasPage() {
                       <td>
                         <EmpresaCertificadoEstadoIcon empresa={empresa} />
                       </td>
+                      {!isFonAdmin ? (
+                        <td>
+                          {empresa.es_administrador ? (
+                            <span className="badge badge--admin">Administrador</span>
+                          ) : (
+                            <span className="badge badge--neutral">—</span>
+                          )}
+                        </td>
+                      ) : null}
                       <td>
                         <EmpresaRowActions
                           empresa={empresa}
+                          showFonActions={isFonAdmin}
                           onEdit={openEditForm}
                           onDelete={openDeleteModal}
                           onActecos={(item) =>
@@ -242,8 +264,10 @@ export function EmpresasPage() {
                           onPersonasAutorizadas={(item) =>
                             navigate(`/empresas/${item.id}/personas-autorizadas`)
                           }
-                          onCertificados={(item) =>
-                            navigate(`/empresas/${item.id}/certificados`)
+                          onCertificados={
+                            isFonAdmin
+                              ? (item) => navigate(`/empresas/${item.id}/certificados`)
+                              : undefined
                           }
                         />
                       </td>

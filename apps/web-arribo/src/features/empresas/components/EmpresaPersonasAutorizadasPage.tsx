@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { Alert, Button, ConfirmDialog, Input } from '@/components/ui'
+import { Alert, Button, Checkbox, ConfirmDialog, Input } from '@/components/ui'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { hasAccesoGlobal } from '@/features/auth/utils/roles'
 import { PersonaAutorizadaEditModal } from '@/features/empresas/components/PersonaAutorizadaEditModal'
+import { PersonaAutorizadaRowActions } from '@/features/empresas/components/PersonaAutorizadaRowActions'
 import { empresaPersonasAutorizadasService } from '@/features/empresas/services/empresaPersonasAutorizadasService'
 import { empresasService } from '@/features/empresas/services/empresasService'
 import { personaAutorizadaService } from '@/features/empresas/services/personaAutorizadaService'
@@ -11,7 +14,10 @@ import type {
   PersonaAutorizada,
   PersonaAutorizadaInput,
 } from '@/features/empresas/types/personaAutorizada.types'
-import { emptyPersonaAutorizadaInput } from '@/features/empresas/types/personaAutorizada.types'
+import {
+  emptyPersonaAutorizadaInput,
+  puedeEliminarPersonaAutorizada,
+} from '@/features/empresas/types/personaAutorizada.types'
 import { ApiError } from '@/services/apiClient'
 
 function formatEstado(activa: boolean) {
@@ -21,11 +27,15 @@ function formatEstado(activa: boolean) {
 export function EmpresaPersonasAutorizadasPage() {
   const { id } = useParams<{ id: string }>()
   const empresaId = Number(id)
+  const { user } = useAuth()
+  const isFonAdmin = hasAccesoGlobal(user)
 
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [assignedPersonas, setAssignedPersonas] = useState<PersonaAutorizada[]>([])
   const [searchResults, setSearchResults] = useState<PersonaAutorizada[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [assignAsAdmin, setAssignAsAdmin] = useState(false)
+  const [createAssignAsAdmin, setCreateAssignAsAdmin] = useState(false)
   const [createValues, setCreateValues] = useState<PersonaAutorizadaInput>(
     emptyPersonaAutorizadaInput(),
   )
@@ -33,12 +43,16 @@ export function EmpresaPersonasAutorizadasPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [assigningPersonaId, setAssigningPersonaId] = useState<number | null>(null)
+  const [updatingAdminPersonaId, setUpdatingAdminPersonaId] = useState<number | null>(null)
   const [personaToRemove, setPersonaToRemove] = useState<PersonaAutorizada | null>(null)
+  const [personaToDelete, setPersonaToDelete] = useState<PersonaAutorizada | null>(null)
   const [personaToEdit, setPersonaToEdit] = useState<PersonaAutorizada | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -113,7 +127,9 @@ export function EmpresaPersonasAutorizadasPage() {
     setSuccessMessage(null)
 
     try {
-      const response = await empresaPersonasAutorizadasService.assign(empresaId, persona.id)
+      const response = await empresaPersonasAutorizadasService.assign(empresaId, persona.id, {
+        esAdministradorEmpresa: assignAsAdmin,
+      })
       setSuccessMessage(
         response.message ?? 'Persona autorizada asignada exitosamente',
       )
@@ -138,9 +154,12 @@ export function EmpresaPersonasAutorizadasPage() {
 
     try {
       const created = await personaAutorizadaService.create(createValues)
-      await empresaPersonasAutorizadasService.assign(empresaId, created.data.id)
+      await empresaPersonasAutorizadasService.assign(empresaId, created.data.id, {
+        esAdministradorEmpresa: createAssignAsAdmin,
+      })
       setSuccessMessage('Persona autorizada creada y asignada a la empresa')
       setCreateValues(emptyPersonaAutorizadaInput())
+      setCreateAssignAsAdmin(false)
       await loadAssigned()
     } catch (error) {
       setActionError(
@@ -150,6 +169,36 @@ export function EmpresaPersonasAutorizadasPage() {
       )
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  async function handleToggleAdmin(persona: PersonaAutorizada) {
+    setUpdatingAdminPersonaId(persona.id)
+    setActionError(null)
+    setSuccessMessage(null)
+
+    try {
+      const nextValue = !persona.es_administrador_empresa
+      const response = await empresaPersonasAutorizadasService.updateAdminRole(
+        empresaId,
+        persona.id,
+        nextValue,
+      )
+      setSuccessMessage(
+        response.message ??
+          (nextValue
+            ? 'Persona marcada como administradora de la empresa'
+            : 'Se quitó el rol de administrador de la empresa'),
+      )
+      await loadAssigned()
+    } catch (error) {
+      setActionError(
+        error instanceof ApiError
+          ? error.message
+          : 'No se pudo actualizar el rol de administrador',
+      )
+    } finally {
+      setUpdatingAdminPersonaId(null)
     }
   }
 
@@ -235,6 +284,43 @@ export function EmpresaPersonasAutorizadasPage() {
     }
   }
 
+  function openDeleteModal(persona: PersonaAutorizada) {
+    setPersonaToDelete(persona)
+    setDeleteError(null)
+  }
+
+  function closeDeleteModal() {
+    setPersonaToDelete(null)
+    setDeleteError(null)
+    setIsDeleting(false)
+  }
+
+  async function confirmDelete() {
+    if (!personaToDelete) {
+      return
+    }
+
+    setIsDeleting(true)
+    setDeleteError(null)
+    setActionError(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await personaAutorizadaService.remove(personaToDelete.id)
+      setSuccessMessage(response.message ?? 'Persona autorizada eliminada exitosamente')
+      setSearchResults((current) => current.filter((item) => item.id !== personaToDelete.id))
+      closeDeleteModal()
+    } catch (error) {
+      setDeleteError(
+        error instanceof ApiError
+          ? error.message
+          : 'No se pudo eliminar la persona autorizada',
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -258,8 +344,12 @@ export function EmpresaPersonasAutorizadasPage() {
     <AppLayout>
       <p className="page-back-link">
         <Link to="/empresas">← Volver a empresas</Link>
-        {' · '}
-        <Link to={`/empresas/${empresaId}/certificados`}>Certificados</Link>
+        {isFonAdmin ? (
+          <>
+            {' · '}
+            <Link to={`/empresas/${empresaId}/certificados`}>Certificados</Link>
+          </>
+        ) : null}
       </p>
 
       <div className="page-header">
@@ -291,6 +381,7 @@ export function EmpresaPersonasAutorizadasPage() {
                   <th>Email</th>
                   <th>Estado</th>
                   <th>Certificado</th>
+                  <th>Admin empresa</th>
                   <th>Acción</th>
                 </tr>
               </thead>
@@ -304,20 +395,21 @@ export function EmpresaPersonasAutorizadasPage() {
                     <td>{formatEstado(persona.activa)}</td>
                     <td>{persona.tiene_certificado_vigente ? 'Vigente' : 'Sin certificado'}</td>
                     <td>
-                      <div className="table-actions">
-                        <Button
-                          variant="secondary"
-                          onClick={() => openEditModal(persona)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => openRemoveModal(persona)}
-                        >
-                          Quitar
-                        </Button>
-                      </div>
+                      {persona.es_administrador_empresa ? (
+                        <span className="badge badge--admin">Administrador</span>
+                      ) : (
+                        <span className="badge badge--neutral">Solo firma</span>
+                      )}
+                    </td>
+                    <td>
+                      <PersonaAutorizadaRowActions
+                        persona={persona}
+                        variant="assigned"
+                        isUpdatingAdmin={updatingAdminPersonaId === persona.id}
+                        onEdit={openEditModal}
+                        onToggleAdmin={(item) => void handleToggleAdmin(item)}
+                        onRemove={openRemoveModal}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -397,6 +489,13 @@ export function EmpresaPersonasAutorizadasPage() {
               required
             />
           </div>
+          <Checkbox
+            name="create_assign_as_admin"
+            label="Administrador de esta empresa"
+            hint="Puede gestionar actecos, tipos de documento, folios y personas autorizadas."
+            checked={createAssignAsAdmin}
+            onChange={(event) => setCreateAssignAsAdmin(event.target.checked)}
+          />
           <div className="empresa-form__actions">
             <Button type="submit" disabled={isCreating}>
               {isCreating ? 'Creando…' : 'Crear y asignar'}
@@ -413,6 +512,14 @@ export function EmpresaPersonasAutorizadasPage() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Ej: 12345678-9 o juan@ejemplo.cl"
+        />
+
+        <Checkbox
+          name="assign_as_admin"
+          label="Asignar como administrador de esta empresa"
+          hint="Si no se marca, la persona solo podrá firmar cuando tenga certificado vigente."
+          checked={assignAsAdmin}
+          onChange={(event) => setAssignAsAdmin(event.target.checked)}
         />
 
         {isSearching ? (
@@ -443,20 +550,15 @@ export function EmpresaPersonasAutorizadasPage() {
                     <td>{persona.nombre_completo}</td>
                     <td>{persona.email}</td>
                     <td>
-                      <div className="table-actions">
-                        <Button
-                          variant="secondary"
-                          onClick={() => openEditModal(persona)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          disabled={assigningPersonaId === persona.id}
-                          onClick={() => void handleAssign(persona)}
-                        >
-                          {assigningPersonaId === persona.id ? 'Asignando…' : 'Asignar'}
-                        </Button>
-                      </div>
+                      <PersonaAutorizadaRowActions
+                        persona={persona}
+                        variant="search"
+                        isFonAdmin={isFonAdmin}
+                        isAssigning={assigningPersonaId === persona.id}
+                        onEdit={openEditModal}
+                        onAssign={(item) => void handleAssign(item)}
+                        onDelete={openDeleteModal}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -490,6 +592,27 @@ export function EmpresaPersonasAutorizadasPage() {
           esta empresa?
         </p>
         <p>La persona seguirá en el catálogo y podrá asignarse a otras empresas.</p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={personaToDelete !== null}
+        title="Eliminar persona autorizada"
+        confirmLabel="Eliminar"
+        variant="danger"
+        isLoading={isDeleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteModal}
+      >
+        <p>
+          ¿Está seguro de eliminar permanentemente a{' '}
+          <strong>{personaToDelete?.nombre_completo}</strong> del catálogo?
+        </p>
+        {personaToDelete && !puedeEliminarPersonaAutorizada(personaToDelete) ? (
+          <p>Esta persona tiene empresas o certificados asociados y no puede eliminarse.</p>
+        ) : (
+          <p>Esta acción no se puede deshacer.</p>
+        )}
       </ConfirmDialog>
     </AppLayout>
   )

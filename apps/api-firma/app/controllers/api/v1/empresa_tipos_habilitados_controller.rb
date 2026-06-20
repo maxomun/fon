@@ -4,8 +4,9 @@ module Api
   module V1
     class EmpresaTiposHabilitadosController < BaseController
       include TipoHabilitadoSerializable
+      include EmpresaAuthorizable
 
-      before_action :require_administrador_fon!
+      before_action :require_admin_empresa!
       before_action :set_empresa
       before_action :set_tipo_habilitado, only: [:update, :destroy]
 
@@ -79,10 +80,6 @@ module Api
       end
 
       private
-
-      def require_administrador_fon!
-        authorize_role!('administrador_fon')
-      end
 
       def set_empresa
         @empresa = Empresa.find(params[:empresa_id])
