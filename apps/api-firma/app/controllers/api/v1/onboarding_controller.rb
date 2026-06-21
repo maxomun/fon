@@ -31,10 +31,11 @@ module Api
 
       # POST /api/v1/auth/onboarding/establecer-password
       def establecer_password
+        attrs = establecer_password_params
         resultado = ::Onboarding::EstablecerPassword.call(
-          token: establecer_password_params[:token],
-          password: establecer_password_params[:password],
-          password_confirmation: establecer_password_params[:password_confirmation]
+          token: attrs[:token],
+          password: attrs[:password],
+          password_confirmation: attrs[:password_confirmation]
         )
 
         if resultado.success?
@@ -43,8 +44,11 @@ module Api
             message: 'Contraseña establecida exitosamente. Ya puede iniciar sesión.'
           )
         else
+          Rails.logger.warn(
+            "[onboarding] establecer-password falló: #{resultado.errors.join(', ')}"
+          )
           render_error(
-            'No se pudo establecer la contraseña',
+            resultado.errors.first || 'No se pudo establecer la contraseña',
             :unprocessable_entity,
             code: 'ONBOARDING_PASSWORD_INVALID',
             errors: resultado.errors
@@ -64,11 +68,16 @@ module Api
       private
 
       def verificar_email_params
-        params.permit(:token)
+        onboarding_action_params(:token)
       end
 
       def establecer_password_params
-        params.permit(:token, :password, :password_confirmation)
+        onboarding_action_params(:token, :password, :password_confirmation)
+      end
+
+      def onboarding_action_params(*keys)
+        source = params[:onboarding].present? ? params.require(:onboarding) : params
+        source.permit(*keys)
       end
 
       def reenviar_verificacion_params

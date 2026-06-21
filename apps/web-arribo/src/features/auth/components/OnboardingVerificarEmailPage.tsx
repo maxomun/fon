@@ -33,12 +33,22 @@ export function OnboardingVerificarEmailPage() {
           return
         }
 
+        const setupToken = response.data?.setup_token?.trim()
+        if (!setupToken) {
+          setState('error')
+          setError(
+            'El correo se verificó, pero no se recibió el enlace para establecer la contraseña. ' +
+              'Solicite un nuevo correo de enrolamiento.',
+          )
+          return
+        }
+
         setMessage(response.message)
         setState('success')
 
         window.setTimeout(() => {
           navigate(
-            `/onboarding/establecer-password?token=${encodeURIComponent(response.data.setup_token)}`,
+            `/onboarding/establecer-password?token=${encodeURIComponent(setupToken)}`,
             { replace: true },
           )
         }, 1200)

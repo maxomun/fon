@@ -38,6 +38,13 @@ module Onboarding
       end
 
       unless onboarding_token.proposito == OnboardingToken::PROPOSITO_ESTABLECER_PASSWORD
+        if onboarding_token.proposito == OnboardingToken::PROPOSITO_VERIFICAR_EMAIL
+          return failure([
+            'Este enlace es para verificar el correo. Complete primero ese paso; ' \
+            'luego se habilitará el formulario para establecer su contraseña.'
+          ])
+        end
+
         return failure(['Token inválido'])
       end
 

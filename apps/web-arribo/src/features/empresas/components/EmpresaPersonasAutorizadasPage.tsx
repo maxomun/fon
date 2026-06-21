@@ -99,31 +99,35 @@ export function EmpresaPersonasAutorizadasPage() {
     void loadPage()
   }, [loadPage])
 
-  useEffect(() => {
+  const loadSearchResults = useCallback(async () => {
     if (!Number.isFinite(empresaId) || empresaId <= 0) {
       return
     }
 
-    const timeoutId = window.setTimeout(async () => {
-      setIsSearching(true)
-      setActionError(null)
+    setIsSearching(true)
+    setActionError(null)
 
-      try {
-        const response = await personaAutorizadaService.list(searchQuery, empresaId)
-        setSearchResults(response.data)
-      } catch (error) {
-        setActionError(
-          error instanceof ApiError
-            ? error.message
-            : 'No se pudo buscar personas autorizadas',
-        )
-      } finally {
-        setIsSearching(false)
-      }
+    try {
+      const response = await personaAutorizadaService.list(searchQuery, empresaId)
+      setSearchResults(response.data)
+    } catch (error) {
+      setActionError(
+        error instanceof ApiError
+          ? error.message
+          : 'No se pudo buscar personas autorizadas',
+      )
+    } finally {
+      setIsSearching(false)
+    }
+  }, [empresaId, searchQuery])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadSearchResults()
     }, 300)
 
     return () => window.clearTimeout(timeoutId)
-  }, [empresaId, searchQuery])
+  }, [loadSearchResults])
 
   async function handleAssign(persona: PersonaAutorizada) {
     setAssigningPersonaId(persona.id)
@@ -308,6 +312,7 @@ export function EmpresaPersonasAutorizadasPage() {
       )
       closeRemoveModal()
       await loadAssigned()
+      await loadSearchResults()
     } catch (error) {
       setRemoveError(
         error instanceof ApiError

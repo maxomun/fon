@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button, Input } from '@/components/ui'
 import { onboardingService } from '@/features/auth/services/onboardingService'
 import {
