@@ -53,7 +53,7 @@ export function LoginForm({ onSubmit, isLoading = false, error }: LoginFormProps
   }
 
   return (
-    <form className="login-form" onSubmit={handleSubmit} noValidate>
+    <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <Input
@@ -80,7 +80,7 @@ export function LoginForm({ onSubmit, isLoading = false, error }: LoginFormProps
         onChange={(event) => handleChange('password', event.target.value)}
       />
 
-      <Button type="submit" isLoading={isLoading} className="login-form__submit">
+      <Button type="submit" isLoading={isLoading} className="w-full">
         Iniciar sesión
       </Button>
     </form>

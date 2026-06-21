@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button, Input } from '@/components/ui'
@@ -23,12 +23,17 @@ export function OnboardingEstablecerPasswordPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
+  const submitInFlight = useRef(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (!token) {
       setError('El enlace no incluye un token válido.')
+      return
+    }
+
+    if (isSubmitting || submitInFlight.current) {
       return
     }
 
@@ -39,6 +44,7 @@ export function OnboardingEstablecerPasswordPage() {
       return
     }
 
+    submitInFlight.current = true
     setIsSubmitting(true)
     setError(null)
 
@@ -51,6 +57,7 @@ export function OnboardingEstablecerPasswordPage() {
       setSuccessMessage(response.message)
       setIsCompleted(true)
     } catch (err) {
+      submitInFlight.current = false
       setError(
         err instanceof ApiError
           ? err.message

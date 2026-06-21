@@ -24,22 +24,31 @@ module Onboarding
       onboarding_token = OnboardingToken.find_by_raw_token(@token)
       return failure(['Token inválido']) if onboarding_token.nil?
 
-      if onboarding_token.consumido?
-        return failure(['Token ya utilizado'])
-      end
-
-      if onboarding_token.expirado?
-        return failure(['Token expirado'])
-      end
-
       unless onboarding_token.proposito == OnboardingToken::PROPOSITO_VERIFICAR_EMAIL
         return failure(['Token inválido'])
       end
 
-      user = onboarding_token.user
       setup_token = nil
+      user = onboarding_token.user
 
       User.transaction do
+        onboarding_token.lock!
+
+        if onboarding_token.consumido?
+          user.reload
+          if user.email_verificado? && !user.onboarding_completado?
+            return failure([
+              'El correo ya fue verificado. Continúe con el enlace para establecer su contraseña.'
+            ])
+          end
+
+          return failure(['Token ya utilizado'])
+        end
+
+        if onboarding_token.expirado?
+          return failure(['Token expirado'])
+        end
+
         onboarding_token.consumir!
 
         unless user.email_verificado?
@@ -53,7 +62,7 @@ module Onboarding
         setup_token = setup.raw_token
       end
 
-      Result.new(setup_token: setup_token, user: user, errors: [])
+      Result.new(setup_token: setup_token, user: user.reload, errors: [])
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages)
     end

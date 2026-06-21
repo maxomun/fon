@@ -29,14 +29,6 @@ module Onboarding
         return failure(['Token inválido'])
       end
 
-      if onboarding_token.consumido?
-        return failure(['Token ya utilizado'])
-      end
-
-      if onboarding_token.expirado?
-        return failure(['Token expirado'])
-      end
-
       unless onboarding_token.proposito == OnboardingToken::PROPOSITO_ESTABLECER_PASSWORD
         if onboarding_token.proposito == OnboardingToken::PROPOSITO_VERIFICAR_EMAIL
           return failure([
@@ -54,14 +46,27 @@ module Onboarding
         return failure(['Debe verificar su correo antes de establecer la contraseña'])
       end
 
-      user.password = @password
-      user.password_confirmation = @password_confirmation
-
-      unless user.valid?
-        return failure(user.errors.full_messages)
-      end
-
       User.transaction do
+        onboarding_token.lock!
+
+        if onboarding_token.consumido?
+          user.reload
+          return Result.new(user: user, errors: []) if user.onboarding_completado?
+
+          return failure(['Token ya utilizado'])
+        end
+
+        if onboarding_token.expirado?
+          return failure(['Token expirado'])
+        end
+
+        user.password = @password
+        user.password_confirmation = @password_confirmation
+
+        unless user.valid?
+          return failure(user.errors.full_messages)
+        end
+
         user.save!
         onboarding_token.consumir!
         user.update!(
@@ -71,7 +76,7 @@ module Onboarding
         user.revocar_todas_las_sesiones!
       end
 
-      Result.new(user: user, errors: [])
+      Result.new(user: user.reload, errors: [])
     rescue ActiveRecord::RecordInvalid => e
       failure(e.record.errors.full_messages)
     end

@@ -91,7 +91,7 @@ export type PasswordResetOnboardingCode =
   (typeof PASSWORD_RESET_ONBOARDING_CODES)[number]
 
 export function isPasswordResetOnboardingCode(
-  code: string | undefined,
+  code: string | null | undefined,
 ): code is PasswordResetOnboardingCode {
   return PASSWORD_RESET_ONBOARDING_CODES.includes(code as PasswordResetOnboardingCode)
 }

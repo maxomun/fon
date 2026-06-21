@@ -113,13 +113,6 @@ module PersonasAutorizadas
         return { success: true, action: :linked }
       end
 
-      if default_password.blank?
-        return {
-          success: false,
-          errors: ['Configure PERSONA_AUTORIZADA_DEFAULT_PASSWORD para crear usuarios de personas autorizadas']
-        }
-      end
-
       { success: true, action: :created }
     end
 

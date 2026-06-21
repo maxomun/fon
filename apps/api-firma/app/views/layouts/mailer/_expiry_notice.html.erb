@@ -1,0 +1,15 @@
+<% hours = local_assigns.fetch(:hours) %>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top:24px;">
+  <tr>
+    <td style="padding:14px 16px;background-color:<%= mail_brand_color(:accent_bg) %>;border:1px solid <%= mail_brand_color(:border) %>;border-radius:8px;">
+      <p style="margin:0;font-family:<%= mail_font_stack %>;font-size:13px;line-height:1.5;color:<%= mail_brand_color(:text) %>;">
+        <strong>Vigencia:</strong> este enlace expira en <%= hours %> horas.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:20px 0 0;font-family:<%= mail_font_stack %>;font-size:14px;line-height:1.6;color:<%= mail_brand_color(:muted) %>;">
+  Si no solicitó este acceso, puede ignorar este mensaje de forma segura.
+</p>

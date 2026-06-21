@@ -3,6 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button } from '@/components/ui'
 import { onboardingService } from '@/features/auth/services/onboardingService'
+import {
+  beginVerifySession,
+  cacheSetupToken,
+  failVerifySession,
+  readCachedSetupToken,
+  redirectToSetupPassword,
+  waitForCachedSetupToken,
+} from '@/features/auth/utils/onboardingVerifySession'
 import { ApiError } from '@/services/apiClient'
 
 type PageState = 'loading' | 'success' | 'error' | 'missing-token'
@@ -21,6 +29,28 @@ export function OnboardingVerificarEmailPage() {
       return
     }
 
+    const cachedSetupToken = readCachedSetupToken(token)
+    if (cachedSetupToken) {
+      redirectToSetupPassword(cachedSetupToken, navigate)
+      return
+    }
+
+    const verifyState = beginVerifySession(token)
+
+    if (verifyState === 'done') {
+      const setupToken = readCachedSetupToken(token)
+      if (setupToken) {
+        redirectToSetupPassword(setupToken, navigate)
+      }
+      return
+    }
+
+    if (verifyState === 'pending') {
+      return waitForCachedSetupToken(token, (setupToken) => {
+        redirectToSetupPassword(setupToken, navigate)
+      })
+    }
+
     let cancelled = false
 
     async function verify() {
@@ -29,12 +59,14 @@ export function OnboardingVerificarEmailPage() {
 
       try {
         const response = await onboardingService.verificarEmail(token)
-        if (cancelled) {
-          return
-        }
-
         const setupToken = response.data?.setup_token?.trim()
+
         if (!setupToken) {
+          failVerifySession(token)
+          if (cancelled) {
+            return
+          }
+
           setState('error')
           setError(
             'El correo se verificó, pero no se recibió el enlace para establecer la contraseña. ' +
@@ -43,16 +75,21 @@ export function OnboardingVerificarEmailPage() {
           return
         }
 
+        cacheSetupToken(token, setupToken)
+
+        if (cancelled) {
+          return
+        }
+
         setMessage(response.message)
         setState('success')
 
         window.setTimeout(() => {
-          navigate(
-            `/onboarding/establecer-password?token=${encodeURIComponent(setupToken)}`,
-            { replace: true },
-          )
+          redirectToSetupPassword(setupToken, navigate)
         }, 1200)
       } catch (err) {
+        failVerifySession(token)
+
         if (cancelled) {
           return
         }
@@ -79,8 +116,13 @@ export function OnboardingVerificarEmailPage() {
         <Alert variant="error">
           El enlace no incluye un token válido. Solicite un nuevo correo de verificación.
         </Alert>
-        <p className="auth-footer-link">
-          <Link to="/login">Volver al inicio de sesión</Link>
+        <p className="text-muted-foreground mt-5 text-center text-sm">
+          <Link
+            to="/login"
+            className="text-primary font-medium underline-offset-4 hover:underline"
+          >
+            Volver al inicio de sesión
+          </Link>
         </p>
       </AuthLayout>
     )
@@ -89,7 +131,7 @@ export function OnboardingVerificarEmailPage() {
   if (state === 'loading') {
     return (
       <AuthLayout title="Verificar correo" subtitle="Confirmando su dirección de email">
-        <p className="placeholder">Verificando correo…</p>
+        <p className="text-muted-foreground text-sm">Verificando correo…</p>
       </AuthLayout>
     )
   }
@@ -98,7 +140,9 @@ export function OnboardingVerificarEmailPage() {
     return (
       <AuthLayout title="Correo verificado" subtitle="Redirigiendo al siguiente paso">
         <Alert variant="success">{message ?? 'Correo verificado exitosamente.'}</Alert>
-        <p className="auth-footer-text">A continuación podrá establecer su contraseña.</p>
+        <p className="text-muted-foreground mt-4 text-sm">
+          A continuación podrá establecer su contraseña.
+        </p>
       </AuthLayout>
     )
   }
@@ -106,11 +150,11 @@ export function OnboardingVerificarEmailPage() {
   return (
     <AuthLayout title="Verificar correo" subtitle="No se pudo completar la verificación">
       <Alert variant="error">{error}</Alert>
-      <p className="auth-footer-text">
+      <p className="text-muted-foreground mt-4 text-sm leading-relaxed">
         El enlace puede haber expirado o ya fue utilizado. Puede solicitar uno nuevo desde el
         inicio de sesión.
       </p>
-      <Button variant="secondary" onClick={() => navigate('/login')}>
+      <Button variant="secondary" className="mt-5" onClick={() => navigate('/login')}>
         Ir al inicio de sesión
       </Button>
     </AuthLayout>

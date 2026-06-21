@@ -8,11 +8,11 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="app-shell">
+    <div className="bg-background flex min-h-svh">
       <Sidebar />
-      <div className="app-content">
+      <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader />
-        <main className="app-main">{children}</main>
+        <main className="flex-1 px-6 py-6 lg:px-8">{children}</main>
       </div>
     </div>
   )

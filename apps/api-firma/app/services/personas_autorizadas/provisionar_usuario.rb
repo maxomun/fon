@@ -129,7 +129,20 @@ module PersonasAutorizadas
     end
 
     def provisioning_password
-      @password.presence || default_password || SecureRandom.alphanumeric(32)
+      return @password if @password.present?
+
+      env_password = default_password
+      if env_password.present?
+        resultado = Users::ValidarPassword.call(password: env_password)
+        return env_password if resultado[:valid]
+
+        Rails.logger.warn(
+          "[provisionar_usuario] #{DEFAULT_PASSWORD_ENV} no cumple la política de contraseña; " \
+          'se generará una temporal.'
+        )
+      end
+
+      Users::GenerarPassword.call
     end
 
     def failure(errors)

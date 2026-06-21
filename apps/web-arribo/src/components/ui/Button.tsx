@@ -1,4 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { Loader2 } from 'lucide-react'
+import { Button as ShadcnButton } from '@/components/ui/shadcn/button'
+import { cn } from '@/lib/utils'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary'
@@ -18,14 +21,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref,
 ) {
   return (
-    <button
+    <ShadcnButton
       ref={ref}
       type={type}
-      className={`btn btn-${variant} ${className}`.trim()}
+      variant={variant === 'primary' ? 'default' : 'secondary'}
       disabled={disabled || isLoading}
+      className={cn('w-full sm:w-auto', className)}
       {...props}
     >
-      {isLoading ? 'Cargando…' : children}
-    </button>
+      {isLoading ? (
+        <>
+          <Loader2 className="size-4 animate-spin" />
+          Cargando…
+        </>
+      ) : (
+        children
+      )}
+    </ShadcnButton>
   )
 })

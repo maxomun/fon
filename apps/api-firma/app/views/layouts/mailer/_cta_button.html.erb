@@ -1,0 +1,31 @@
+<% label = local_assigns.fetch(:label) %>
+<% url = local_assigns.fetch(:url) %>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 8px;">
+  <tr>
+    <td align="left" style="border-radius:8px;background-color:<%= mail_brand_color(:primary) %>;">
+      <!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="<%= url %>" style="height:44px;v-text-anchor:middle;width:260px;" arcsize="12%" stroke="f" fillcolor="<%= mail_brand_color(:primary) %>">
+          <w:anchorlock/>
+          <center style="color:<%= mail_brand_color(:primary_text) %>;font-family:Arial,sans-serif;font-size:14px;font-weight:600;">
+            <%= label %>
+          </center>
+        </v:roundrect>
+      <![endif]-->
+      <!--[if !mso]><!-->
+      <a
+        href="<%= url %>"
+        target="_blank"
+        style="display:inline-block;padding:12px 28px;font-family:<%= mail_font_stack %>;font-size:14px;font-weight:600;line-height:1.2;color:<%= mail_brand_color(:primary_text) %>;text-decoration:none;border-radius:8px;background-color:<%= mail_brand_color(:primary) %>;"
+      >
+        <%= label %>
+      </a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>
+
+<p style="margin:12px 0 0;font-family:<%= mail_font_stack %>;font-size:12px;line-height:1.5;color:<%= mail_brand_color(:muted) %>;word-break:break-all;">
+  Si el botón no funciona, copie y pegue este enlace en su navegador:<br>
+  <a href="<%= url %>" target="_blank" style="color:<%= mail_brand_color(:primary) %>;text-decoration:underline;"><%= url %></a>
+</p>

@@ -1,17 +1,16 @@
-<p>Hola <%= @nombre %>,</p>
+<% content_for :preheader do %>
+  Confirme su correo para activar su cuenta de persona autorizada en FacturaOn.
+<% end %>
 
-<p>
+<p style="margin:0 0 16px;font-family:<%= mail_font_stack %>;font-size:16px;line-height:1.6;color:<%= mail_brand_color(:text) %>;">
+  Hola <strong><%= @nombre %></strong>,
+</p>
+
+<p style="margin:0 0 16px;font-family:<%= mail_font_stack %>;font-size:16px;line-height:1.6;color:<%= mail_brand_color(:text) %>;">
   Se creó una cuenta de persona autorizada en <strong>FacturaOn</strong> con este correo.
-  Para confirmar que controlas esta dirección, haz clic en el siguiente enlace:
+  Para confirmar que usted controla esta dirección, utilice el siguiente botón:
 </p>
 
-<p>
-  <a href="<%= @verification_url %>">Confirmar mi correo</a>
-</p>
+<%= render 'layouts/mailer/cta_button', url: @verification_url, label: 'Confirmar mi correo' %>
 
-<p>
-  El enlace expira en <%= @expiry_hours %> horas.
-  Si no solicitaste este acceso, puedes ignorar este mensaje.
-</p>
-
-<p>Equipo FacturaOn</p>
+<%= render 'layouts/mailer/expiry_notice', hours: @expiry_hours %>

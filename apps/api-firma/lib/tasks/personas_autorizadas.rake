@@ -25,11 +25,6 @@ namespace :personas_autorizadas do
       next
     end
 
-    if !dry_run && ENV.fetch(PersonasAutorizadas::ProvisionarUsuario::DEFAULT_PASSWORD_ENV, nil).blank?
-      puts 'Error: configure PERSONA_AUTORIZADA_DEFAULT_PASSWORD antes de ejecutar el backfill.'
-      exit 1
-    end
-
     resultado = PersonasAutorizadas::BackfillUsuarios.call(
       dry_run: dry_run,
       solo_activas: solo_activas

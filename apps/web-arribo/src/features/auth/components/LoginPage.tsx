@@ -84,13 +84,18 @@ export function LoginPage() {
         error={error}
       />
 
-      <p className="auth-footer-link">
-        <Link to="/olvide-contrasena">¿Olvidaste tu contraseña?</Link>
+      <p className="text-muted-foreground mt-5 text-center text-sm">
+        <Link
+          to="/olvide-contrasena"
+          className="text-primary font-medium underline-offset-4 hover:underline"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
       </p>
 
       {onboardingCode === 'EMAIL_NOT_VERIFIED' ? (
-        <div className="login-form__onboarding">
-          <p className="login-form__onboarding-text">
+        <div className="border-border mt-5 grid gap-3 border-t pt-5">
+          <p className="text-muted-foreground text-sm leading-relaxed">
             Revise su bandeja de entrada y spam. Si no encuentra el correo, puede
             solicitar uno nuevo.
           </p>
@@ -107,10 +112,12 @@ export function LoginPage() {
       ) : null}
 
       {onboardingCode === 'ONBOARDING_INCOMPLETE' ? (
-        <Alert variant="info">
-          Debe completar el enrolamiento usando los enlaces enviados a su correo
-          electrónico.
-        </Alert>
+        <div className="mt-5">
+          <Alert variant="info">
+            Debe completar el enrolamiento usando los enlaces enviados a su correo
+            electrónico.
+          </Alert>
+        </div>
       ) : null}
     </AuthLayout>
   )

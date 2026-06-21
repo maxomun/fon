@@ -27,6 +27,17 @@ module MailerConfig
     ENV.fetch('PASSWORD_RESET_TOKEN_EXPIRY_HOURS', 24).to_i
   end
 
+  def logo_file_path
+    custom_path = ENV['MAIL_LOGO_FILE'].presence
+    return Rails.root.join(custom_path) if custom_path
+
+    Rails.public_path.join('brand/logo-email-white.png')
+  end
+
+  def logo_url
+    ENV['MAIL_LOGO_URL'].presence
+  end
+
   def smtp_configured?
     ENV['SMTP_USERNAME'].present? && ENV['SMTP_PASSWORD'].present?
   end

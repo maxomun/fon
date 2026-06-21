@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
+import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { Badge } from '@/components/ui/shadcn/badge'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { displayUserName, formatRoles, hasAccesoGlobal } from '@/features/auth/utils/roles'
 
@@ -16,17 +18,23 @@ export function AppHeader() {
   const rolesLabel = formatRoles(user)
 
   return (
-    <header className="app-header">
-      <div className="app-header__content">
-        <div className="app-header__user-info">
-          {displayName ? <span className="app-header__name">{displayName}</span> : null}
-          {user?.email ? <span className="app-header__email">{user.email}</span> : null}
-          {rolesLabel ? <span className="app-header__roles">{rolesLabel}</span> : null}
-          {hasAccesoGlobal(user) ? (
-            <span className="app-header__empresa">Administrador FON</span>
+    <header className="bg-card/80 supports-[backdrop-filter]:bg-card/70 sticky top-0 z-10 border-b backdrop-blur">
+      <div className="flex items-center justify-between gap-4 px-6 py-4 lg:px-8">
+        <div className="min-w-0">
+          {displayName ? (
+            <p className="truncate text-sm font-semibold">{displayName}</p>
           ) : null}
+          {user?.email ? (
+            <p className="text-muted-foreground truncate text-sm">{user.email}</p>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {rolesLabel ? <Badge variant="secondary">{rolesLabel}</Badge> : null}
+            {hasAccesoGlobal(user) ? <Badge>Administrador FON</Badge> : null}
+          </div>
         </div>
-        <Button variant="secondary" onClick={handleLogout}>
+
+        <Button variant="secondary" className="shrink-0" onClick={() => void handleLogout()}>
+          <LogOut className="size-4" />
           Cerrar sesión
         </Button>
       </div>

@@ -1,13 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>FacturaOn</title>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
     <style>
-      /* Email styles need to be inline */
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     </style>
   </head>
 
-  <body>
-    <%= yield %>
+  <body style="margin:0;padding:0;width:100%;background-color:<%= mail_brand_color(:background) %>;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+    <% if content_for?(:preheader) %>
+      <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+        <%= yield :preheader %>
+      </div>
+    <% end %>
+
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:<%= mail_brand_color(:background) %>;">
+      <tr>
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width:100%;max-width:600px;background-color:<%= mail_brand_color(:card) %>;border:1px solid <%= mail_brand_color(:border) %>;border-radius:12px;overflow:hidden;">
+            <%= render 'layouts/mailer/brand_header' %>
+
+            <tr>
+              <td style="padding:32px 40px 24px;font-family:<%= mail_font_stack %>;font-size:16px;line-height:1.6;color:<%= mail_brand_color(:text) %>;">
+                <%= yield %>
+              </td>
+            </tr>
+
+            <%= render 'layouts/mailer/footer' %>
+          </table>
+
+          <p style="margin:20px 0 0;font-family:<%= mail_font_stack %>;font-size:12px;line-height:1.5;color:<%= mail_brand_color(:muted) %>;text-align:center;">
+            Este es un mensaje automático de FacturaOn. Por favor no responda a este correo.
+          </p>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>
