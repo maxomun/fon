@@ -11,7 +11,7 @@ class User < ApplicationRecord
   # Validación de password con confirmación (solo cuando se cambia el password)
   validates :password, confirmation: true, if: -> { password.present? }
   validates :password_confirmation, presence: { message: 'debe ser proporcionada' }, if: -> { password.present? }
-  validates :password, length: { minimum: 6, message: 'debe tener al menos 6 caracteres' }, if: -> { password.present? }
+  validate :validar_politica_password, if: -> { password.present? }
 
   # Relaciones
   has_many :user_roles, class_name: 'UserRol', dependent: :destroy
@@ -132,5 +132,18 @@ class User < ApplicationRecord
     return false if administrador_fon?
 
     documento_emitidos.none? && documento_recibidos.none?
+  end
+
+  def puede_restablecer_password?
+    return false unless activo?
+
+    !requiere_verificacion_email? && !requiere_onboarding?
+  end
+
+  private
+
+  def validar_politica_password
+    resultado = Users::ValidarPassword.call(password: password)
+    resultado[:errors].each { |mensaje| errors.add(:password, mensaje) }
   end
 end

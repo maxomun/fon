@@ -1,26 +1,20 @@
-import type { EstablecerPasswordFormErrors } from '@/features/auth/types/onboarding.types'
+import {
+  hasPasswordFormErrors,
+  validatePassword,
+  type PasswordFormErrors,
+} from '@/features/auth/utils/validatePassword'
+
+export type EstablecerPasswordFormErrors = PasswordFormErrors
 
 export function validateOnboardingPassword(
   password: string,
   passwordConfirmation: string,
 ): EstablecerPasswordFormErrors {
-  const errors: EstablecerPasswordFormErrors = {}
-
-  if (!password) {
-    errors.password = 'La contraseña es requerida'
-  } else if (password.length < 6) {
-    errors.password = 'La contraseña debe tener al menos 6 caracteres'
-  }
-
-  if (!passwordConfirmation) {
-    errors.password_confirmation = 'Confirme la contraseña'
-  } else if (password !== passwordConfirmation) {
-    errors.password_confirmation = 'Las contraseñas no coinciden'
-  }
-
-  return errors
+  return validatePassword(password, passwordConfirmation)
 }
 
 export function hasOnboardingPasswordErrors(errors: EstablecerPasswordFormErrors) {
-  return Object.keys(errors).length > 0
+  return hasPasswordFormErrors(errors)
 }
+
+export { PASSWORD_POLICY_HINT } from '@/features/auth/utils/validatePassword'

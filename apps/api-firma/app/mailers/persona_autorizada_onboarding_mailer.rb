@@ -25,6 +25,18 @@ class PersonaAutorizadaOnboardingMailer < ApplicationMailer
     )
   end
 
+  def restablecer_password(user:, raw_token:)
+    @user = user
+    @nombre = user.nombre_completo.presence || user.email
+    @expiry_hours = MailerConfig.password_reset_token_expiry_hours
+    @reset_url = reset_password_url(raw_token)
+
+    mail(
+      to: user.email,
+      subject: 'Restablece tu contraseña en FacturaOn'
+    )
+  end
+
   private
 
   def verification_url(raw_token)
@@ -33,5 +45,9 @@ class PersonaAutorizadaOnboardingMailer < ApplicationMailer
 
   def password_url(raw_token)
     "#{MailerConfig.frontend_base_url}/onboarding/establecer-password?token=#{CGI.escape(raw_token)}"
+  end
+
+  def reset_password_url(raw_token)
+    "#{MailerConfig.frontend_base_url}/olvide-contrasena/confirmar?token=#{CGI.escape(raw_token)}"
   end
 end

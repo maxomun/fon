@@ -23,6 +23,10 @@ module MailerConfig
     ENV.fetch('ONBOARDING_TOKEN_EXPIRY_HOURS', 48).to_i
   end
 
+  def password_reset_token_expiry_hours
+    ENV.fetch('PASSWORD_RESET_TOKEN_EXPIRY_HOURS', 24).to_i
+  end
+
   def smtp_configured?
     ENV['SMTP_USERNAME'].present? && ENV['SMTP_PASSWORD'].present?
   end
@@ -33,12 +37,18 @@ module MailerConfig
       port: ENV.fetch('SMTP_PORT', 587).to_i,
       domain: ENV.fetch('SMTP_DOMAIN', 'gmail.com'),
       user_name: ENV.fetch('SMTP_USERNAME'),
-      password: ENV.fetch('SMTP_PASSWORD'),
+      password: smtp_password,
       authentication: ENV.fetch('SMTP_AUTHENTICATION', 'plain').to_sym,
       enable_starttls_auto: ActiveModel::Type::Boolean.new.cast(
         ENV.fetch('SMTP_ENABLE_STARTTLS', true)
-      )
+      ),
+      open_timeout: ENV.fetch('SMTP_OPEN_TIMEOUT', 30).to_i,
+      read_timeout: ENV.fetch('SMTP_READ_TIMEOUT', 30).to_i
     }
+  end
+
+  def smtp_password
+    ENV.fetch('SMTP_PASSWORD', '').gsub(/\s+/, '')
   end
 end
 

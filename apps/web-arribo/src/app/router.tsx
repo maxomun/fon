@@ -7,6 +7,8 @@ import { EmpresaAccessProtectedRoute } from '@/features/auth/components/EmpresaA
 import { LoginPage } from '@/features/auth/components/LoginPage'
 import { OnboardingEstablecerPasswordPage } from '@/features/auth/components/OnboardingEstablecerPasswordPage'
 import { OnboardingVerificarEmailPage } from '@/features/auth/components/OnboardingVerificarEmailPage'
+import { OlvideContrasenaConfirmarPage } from '@/features/auth/components/OlvideContrasenaConfirmarPage'
+import { OlvideContrasenaPage } from '@/features/auth/components/OlvideContrasenaPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { EmpresasPage } from '@/features/empresas/components/EmpresasPage'
 import { EmpresaActecosPage } from '@/features/empresas/components/EmpresaActecosPage'
@@ -40,6 +42,11 @@ export function AppRouter() {
       <Route
         path="/onboarding/establecer-password"
         element={<OnboardingEstablecerPasswordPage />}
+      />
+      <Route path="/olvide-contrasena" element={<OlvideContrasenaPage />} />
+      <Route
+        path="/olvide-contrasena/confirmar"
+        element={<OlvideContrasenaConfirmarPage />}
       />
       <Route
         path="/dashboard"
