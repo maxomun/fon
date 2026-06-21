@@ -27,7 +27,12 @@ module Users
         persona_autorizada_id: @user.persona_autorizada&.id,
         acceso_global: @user.administrador_fon?,
         empresas: Users::EmpresasPayload.call(@user),
-        roles: roles_payload
+        roles: roles_payload,
+        email_verificado: @user.email_verificado?,
+        onboarding_completado: @user.onboarding_completado?,
+        requiere_verificacion_email: @user.requiere_verificacion_email?,
+        requiere_onboarding: @user.requiere_onboarding?,
+        debe_cambiar_password: @user.debe_cambiar_password
       }
     end
 

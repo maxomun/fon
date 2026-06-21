@@ -23,6 +23,18 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Usuario auto-creado al registrar persona autorizada
       PERSONA_AUTORIZADA_DEFAULT_PASSWORD: ${PERSONA_AUTORIZADA_DEFAULT_PASSWORD:-}
+      # Correo SMTP (onboarding)
+      SMTP_ADDRESS: ${SMTP_ADDRESS:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_DOMAIN: ${SMTP_DOMAIN:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION:-plain}
+      SMTP_ENABLE_STARTTLS: ${SMTP_ENABLE_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-FacturaOn Enrolamiento}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
+      ONBOARDING_TOKEN_EXPIRY_HOURS: ${ONBOARDING_TOKEN_EXPIRY_HOURS:-48}
     env_file:
       - .env
     stdin_open: true

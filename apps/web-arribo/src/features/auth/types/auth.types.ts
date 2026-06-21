@@ -39,6 +39,11 @@ export interface UserProfile {
   acceso_global: boolean
   empresas: UserEmpresaResumen[]
   roles: UserRole[]
+  email_verificado?: boolean
+  onboarding_completado?: boolean
+  requiere_verificacion_email?: boolean
+  requiere_onboarding?: boolean
+  debe_cambiar_password?: boolean
 }
 
 export interface LoginResponse extends AuthTokens {
@@ -56,4 +61,22 @@ export interface RefreshResponse extends AuthTokens {
   success: boolean
   message: string
   user?: UserProfile
+}
+
+export const AUTH_ONBOARDING_BLOCK_CODES = [
+  'EMAIL_NOT_VERIFIED',
+  'ONBOARDING_INCOMPLETE',
+] as const
+
+export type AuthOnboardingBlockCode = (typeof AUTH_ONBOARDING_BLOCK_CODES)[number]
+
+export function isAuthOnboardingBlockCode(
+  code: string | undefined,
+): code is AuthOnboardingBlockCode {
+  return AUTH_ONBOARDING_BLOCK_CODES.includes(code as AuthOnboardingBlockCode)
+}
+
+export interface ReenviarVerificacionResponse {
+  success: boolean
+  message: string
 }

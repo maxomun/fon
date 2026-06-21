@@ -6,6 +6,7 @@ import type {
   LoginCredentials,
   UserProfile,
 } from '@/features/auth/types/auth.types'
+import { isAuthOnboardingBlockCode } from '@/features/auth/types/auth.types'
 import { ApiError } from '@/services/apiClient'
 
 interface AuthProviderProps {
@@ -22,7 +23,16 @@ function normalizeUserProfile(user: UserProfile): UserProfile {
     ...user,
     acceso_global: user.acceso_global ?? false,
     empresas: user.empresas ?? [],
+    email_verificado: user.email_verificado ?? true,
+    onboarding_completado: user.onboarding_completado ?? true,
+    requiere_verificacion_email: user.requiere_verificacion_email ?? false,
+    requiere_onboarding: user.requiere_onboarding ?? false,
+    debe_cambiar_password: user.debe_cambiar_password ?? false,
   }
+}
+
+function isSessionBlockedError(error: unknown) {
+  return error instanceof ApiError && isAuthOnboardingBlockCode(error.code)
 }
 
 async function tryRefreshSession(): Promise<UserProfile | null> {
@@ -54,6 +64,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(currentUser)
       return
     } catch (error) {
+      if (isSessionBlockedError(error)) {
+        tokenStorage.clear()
+        setUser(null)
+        return
+      }
+
       const shouldRefresh =
         error instanceof ApiError &&
         (error.code === 'TOKEN_EXPIRED' || error.status === 401)

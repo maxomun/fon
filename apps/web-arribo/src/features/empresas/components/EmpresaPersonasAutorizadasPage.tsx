@@ -5,6 +5,7 @@ import { Alert, Button, Checkbox, ConfirmDialog, Input } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { hasAccesoGlobal } from '@/features/auth/utils/roles'
 import { PersonaAutorizadaEditModal } from '@/features/empresas/components/PersonaAutorizadaEditModal'
+import { PersonaAutorizadaOnboardingBadge } from '@/features/empresas/components/PersonaAutorizadaOnboardingBadge'
 import { PersonaAutorizadaRowActions } from '@/features/empresas/components/PersonaAutorizadaRowActions'
 import { empresaPersonasAutorizadasService } from '@/features/empresas/services/empresaPersonasAutorizadasService'
 import { empresasService } from '@/features/empresas/services/empresasService'
@@ -44,6 +45,9 @@ export function EmpresaPersonasAutorizadasPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [assigningPersonaId, setAssigningPersonaId] = useState<number | null>(null)
   const [updatingAdminPersonaId, setUpdatingAdminPersonaId] = useState<number | null>(null)
+  const [resendingOnboardingPersonaId, setResendingOnboardingPersonaId] = useState<number | null>(
+    null,
+  )
   const [personaToRemove, setPersonaToRemove] = useState<PersonaAutorizada | null>(null)
   const [personaToDelete, setPersonaToDelete] = useState<PersonaAutorizada | null>(null)
   const [personaToEdit, setPersonaToEdit] = useState<PersonaAutorizada | null>(null)
@@ -199,6 +203,37 @@ export function EmpresaPersonasAutorizadasPage() {
       )
     } finally {
       setUpdatingAdminPersonaId(null)
+    }
+  }
+
+  function syncPersonaInLists(updated: PersonaAutorizada) {
+    setAssignedPersonas((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    )
+    setSearchResults((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    )
+  }
+
+  async function handleReenviarOnboarding(persona: PersonaAutorizada) {
+    setResendingOnboardingPersonaId(persona.id)
+    setActionError(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await personaAutorizadaService.reenviarOnboarding(persona.id)
+      syncPersonaInLists(response.data)
+      setSuccessMessage(
+        response.message ?? 'Correo de enrolamiento reenviado exitosamente',
+      )
+    } catch (error) {
+      setActionError(
+        error instanceof ApiError
+          ? error.message
+          : 'No se pudo reenviar el correo de enrolamiento',
+      )
+    } finally {
+      setResendingOnboardingPersonaId(null)
     }
   }
 
@@ -382,6 +417,7 @@ export function EmpresaPersonasAutorizadasPage() {
                   <th>Estado</th>
                   <th>Certificado</th>
                   <th>Admin empresa</th>
+                  <th>Enrolamiento</th>
                   <th>Acción</th>
                 </tr>
               </thead>
@@ -402,13 +438,19 @@ export function EmpresaPersonasAutorizadasPage() {
                       )}
                     </td>
                     <td>
+                      <PersonaAutorizadaOnboardingBadge persona={persona} />
+                    </td>
+                    <td>
                       <PersonaAutorizadaRowActions
                         persona={persona}
                         variant="assigned"
+                        isFonAdmin={isFonAdmin}
                         isUpdatingAdmin={updatingAdminPersonaId === persona.id}
+                        isResendingOnboarding={resendingOnboardingPersonaId === persona.id}
                         onEdit={openEditModal}
                         onToggleAdmin={(item) => void handleToggleAdmin(item)}
                         onRemove={openRemoveModal}
+                        onReenviarOnboarding={(item) => void handleReenviarOnboarding(item)}
                       />
                     </td>
                   </tr>
@@ -539,6 +581,7 @@ export function EmpresaPersonasAutorizadasPage() {
                   <th>RUT</th>
                   <th>Nombre</th>
                   <th>Email</th>
+                  <th>Enrolamiento</th>
                   <th>Acción</th>
                 </tr>
               </thead>
@@ -550,14 +593,19 @@ export function EmpresaPersonasAutorizadasPage() {
                     <td>{persona.nombre_completo}</td>
                     <td>{persona.email}</td>
                     <td>
+                      <PersonaAutorizadaOnboardingBadge persona={persona} />
+                    </td>
+                    <td>
                       <PersonaAutorizadaRowActions
                         persona={persona}
                         variant="search"
                         isFonAdmin={isFonAdmin}
                         isAssigning={assigningPersonaId === persona.id}
+                        isResendingOnboarding={resendingOnboardingPersonaId === persona.id}
                         onEdit={openEditModal}
                         onAssign={(item) => void handleAssign(item)}
                         onDelete={openDeleteModal}
+                        onReenviarOnboarding={(item) => void handleReenviarOnboarding(item)}
                       />
                     </td>
                   </tr>

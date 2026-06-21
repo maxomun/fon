@@ -4,6 +4,7 @@ import type {
   LoginResponse,
   MeResponse,
   RefreshResponse,
+  ReenviarVerificacionResponse,
 } from '@/features/auth/types/auth.types'
 
 const AUTH_BASE = '/api/v1/auth'
@@ -28,5 +29,12 @@ export const authService = {
     return apiClient.post<RefreshResponse>(`${AUTH_BASE}/refresh`, {
       refresh_token: refreshToken,
     })
+  },
+
+  reenviarVerificacion(email: string) {
+    return apiClient.post<ReenviarVerificacionResponse>(
+      `${AUTH_BASE}/onboarding/reenviar-verificacion`,
+      { email },
+    )
   },
 }

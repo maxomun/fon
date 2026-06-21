@@ -3,6 +3,8 @@
 module Api
   module V1
     class AuthenticationController < ApplicationController
+      include OnboardingSessionBlockable
+
       # No requiere autenticación para login
       skip_before_action :verify_authenticity_token, raise: false
       before_action :authenticate_request!, only: [:logout, :me, :refresh]
@@ -13,15 +15,20 @@ module Api
         user = find_user_by_credentials
 
         if user&.authenticate(login_params[:password])
-          if user.activo?
-            tokens = generate_tokens(user)
-            render_success(
-              tokens.merge(user: user_payload(user)),
-              message: 'Inicio de sesión exitoso'
-            )
-          else
-            render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
+          unless user.activo?
+            return render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
           end
+
+          bloqueo = Users::VerificarAccesoSesion.call(user)
+          if bloqueo
+            return render_onboarding_blocked(bloqueo, user: user)
+          end
+
+          tokens = generate_tokens(user)
+          render_success(
+            tokens.merge(user: user_payload(user)),
+            message: 'Inicio de sesión exitoso'
+          )
         else
           render_error('Credenciales inválidas', :unauthorized, code: 'INVALID_CREDENTIALS')
         end
@@ -45,6 +52,12 @@ module Api
 
         unless user.activo?
           return render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
+        end
+
+        bloqueo = Users::VerificarAccesoSesion.call(user)
+        if bloqueo
+          refresh_token.revoke!
+          return render_onboarding_blocked(bloqueo, user: user)
         end
 
         refresh_token.revoke!
@@ -129,6 +142,8 @@ module Api
         render_error('Token expirado', :unauthorized, code: 'TOKEN_EXPIRED')
       rescue JsonWebToken::TokenInvalidError => e
         render_error(e.message, :unauthorized, code: 'TOKEN_INVALID')
+      rescue OnboardingSessionBlockedError => e
+        render_onboarding_blocked(e.bloqueo, user: e.user)
       end
 
       def authenticate_token
@@ -144,6 +159,8 @@ module Api
         user = user_scope.find_by(id: payload[:user_id])
         raise JsonWebToken::TokenInvalidError, 'Usuario no encontrado' unless user
         raise JsonWebToken::TokenInvalidError, 'Usuario inactivo' unless user.activo?
+
+        enforce_session_onboarding_access!(user)
 
         user
       end

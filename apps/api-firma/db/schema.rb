@@ -215,6 +215,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["pais_id", "abreviacion"], name: "uq_impuestos_pais_abreviacion"
   end
 
+  create_table "onboarding_tokens", id: :serial, comment: "Tokens de un solo uso para verificar email y completar onboarding de personas autorizadas.", force: :cascade do |t|
+    t.integer "user_id", null: false, comment: "Usuario de login asociado a la persona autorizada en proceso de enrolamiento."
+    t.string "token_digest", limit: 64, null: false, comment: "SHA256 hex del token enviado por correo. Nunca almacenar el token en texto plano."
+    t.string "proposito", limit: 30, null: false, comment: "verificar_email: confirma control del correo. establecer_password: permite definir clave propia."
+    t.datetime "expires_at", precision: nil, null: false, comment: "Fecha/hora de expiración del token."
+    t.datetime "used_at", precision: nil, comment: "Fecha/hora en que el token fue consumido. NULL = aún no usado."
+    t.datetime "created_at", precision: nil, default: -> { "now()" }, null: false, comment: "Fecha/hora de emisión del token."
+    t.index ["expires_at"], name: "idx_onboarding_tokens_expires_at"
+    t.index ["token_digest"], name: "uq_onboarding_tokens_token_digest", unique: true
+    t.index ["user_id", "proposito"], name: "idx_onboarding_tokens_user_proposito_activo", where: "(used_at IS NULL)"
+    t.check_constraint "proposito::text = ANY (ARRAY['verificar_email'::character varying, 'establecer_password'::character varying]::text[])", name: "chk_onboarding_tokens_proposito"
+  end
+
   create_table "paises", id: :serial, comment: "Catálogo de países soportados por la plataforma.", force: :cascade do |t|
     t.string "codigo", limit: 3, null: false, comment: "Código ISO del país (ej: CL, PE, AR)."
     t.string "nombre", limit: 100, null: false, comment: "Nombre del país."
@@ -352,6 +365,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.string "nombres", limit: 250
     t.string "apellido_paterno", limit: 250
     t.string "apellido_materno", limit: 250
+    t.datetime "email_verificado_at", precision: nil, comment: "Momento en que el usuario confirmó control de su correo. NULL = pendiente."
+    t.datetime "onboarding_completado_at", precision: nil, comment: "Momento en que terminó el enrolamiento (verificación + password propia)."
+    t.boolean "debe_cambiar_password", default: false, null: false, comment: "TRUE mientras la cuenta usa password temporal o debe ser reemplazada en onboarding."
 
     t.unique_constraint ["email"], name: "uq_usuarios_email"
     t.unique_constraint ["username"], name: "uq_usuarios_username"
@@ -387,6 +403,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
   add_foreign_key "impuesto_valores", "impuestos", name: "fk_impuesto_valores_impuestos"
   add_foreign_key "impuestos", "paises", name: "fk_impuestos_paises"
+  add_foreign_key "onboarding_tokens", "users", name: "fk_onboarding_tokens_users", on_delete: :cascade
   add_foreign_key "personas_autorizadas", "users", name: "fk_personas_autorizadas_users"
   add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos"
   add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos"

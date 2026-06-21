@@ -2,6 +2,7 @@
 
 module Authenticable
   extend ActiveSupport::Concern
+  include OnboardingSessionBlockable
 
   included do
     before_action :authenticate_request!
@@ -16,6 +17,8 @@ module Authenticable
     render_error('Token expirado', :unauthorized, code: 'TOKEN_EXPIRED')
   rescue JsonWebToken::TokenInvalidError => e
     render_error(e.message, :unauthorized, code: 'TOKEN_INVALID')
+  rescue OnboardingSessionBlockedError => e
+    render_onboarding_blocked(e.bloqueo, user: e.user)
   end
 
   def authenticate_token
@@ -38,6 +41,8 @@ module Authenticable
     user = User.find_by(id: payload[:user_id])
     raise JsonWebToken::TokenInvalidError, 'Usuario no encontrado' unless user
     raise JsonWebToken::TokenInvalidError, 'Usuario inactivo' unless user.activo?
+
+    enforce_session_onboarding_access!(user)
 
     user
   end

@@ -39,4 +39,10 @@ export const personaAutorizadaService = {
   remove(id: number) {
     return authenticatedClient.delete<PersonaAutorizadaDeleteResponse>(`${BASE}/${id}`)
   },
+
+  reenviarOnboarding(id: number) {
+    return authenticatedClient.post<PersonaAutorizadaResponse>(
+      `${BASE}/${id}/reenviar_onboarding`,
+    )
+  },
 }

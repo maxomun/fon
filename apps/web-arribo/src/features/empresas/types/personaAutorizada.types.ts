@@ -15,6 +15,11 @@ export interface PersonaAutorizada {
   certificado_vigente_id: number | null
   tiene_certificado_vigente: boolean
   puede_eliminarse?: boolean
+  email_verificado?: boolean
+  onboarding_completado?: boolean
+  requiere_verificacion_email?: boolean
+  requiere_onboarding?: boolean
+  debe_cambiar_password?: boolean
   fecha_asignacion?: string
   es_administrador_empresa?: boolean
 }
@@ -86,4 +91,47 @@ export function personaAutorizadaPayload(input: PersonaAutorizadaInput) {
 
 export function puedeEliminarPersonaAutorizada(persona: PersonaAutorizada) {
   return persona.puede_eliminarse === true
+}
+
+export type PersonaOnboardingEstado =
+  | 'completo'
+  | 'pendiente_verificacion'
+  | 'pendiente_password'
+  | 'sin_cuenta'
+
+export function personaOnboardingEstado(
+  persona: PersonaAutorizada,
+): PersonaOnboardingEstado {
+  if (!persona.user_id) {
+    return 'sin_cuenta'
+  }
+
+  if (persona.onboarding_completado) {
+    return 'completo'
+  }
+
+  if (persona.requiere_verificacion_email) {
+    return 'pendiente_verificacion'
+  }
+
+  return 'pendiente_password'
+}
+
+export function personaOnboardingLabel(persona: PersonaAutorizada) {
+  switch (personaOnboardingEstado(persona)) {
+    case 'completo':
+      return 'Enrolamiento completo'
+    case 'pendiente_verificacion':
+      return 'Pendiente verificación'
+    case 'pendiente_password':
+      return 'Pendiente contraseña'
+    case 'sin_cuenta':
+      return 'Sin cuenta'
+    default:
+      return null
+  }
+}
+
+export function puedeReenviarOnboarding(persona: PersonaAutorizada) {
+  return personaOnboardingEstado(persona) !== 'completo'
 }

@@ -19,6 +19,7 @@ class User < ApplicationRecord
   has_one :persona_autorizada, dependent: :nullify
   has_many :refresh_tokens, dependent: :destroy
   has_many :token_blacklists, dependent: :destroy
+  has_many :onboarding_tokens, dependent: :destroy
   has_many :documento_emitidos, foreign_key: :usuario_id, dependent: :restrict_with_error
   has_many :documento_recibidos, dependent: :restrict_with_error
 
@@ -60,6 +61,26 @@ class User < ApplicationRecord
 
   def administrador_fon?
     tiene_rol?(ROL_ADMINISTRADOR_FON)
+  end
+
+  def email_verificado?
+    email_verificado_at.present?
+  end
+
+  def onboarding_completado?
+    onboarding_completado_at.present?
+  end
+
+  def perfil_persona_autorizada?
+    persona_autorizada.present? && !administrador_fon?
+  end
+
+  def requiere_verificacion_email?
+    perfil_persona_autorizada? && !email_verificado?
+  end
+
+  def requiere_onboarding?
+    perfil_persona_autorizada? && !onboarding_completado?
   end
 
   def nombre_completo
@@ -105,5 +126,11 @@ class User < ApplicationRecord
   # Revoca todas las sesiones activas del usuario
   def revocar_todas_las_sesiones!
     refresh_tokens.active.each(&:revoke!)
+  end
+
+  def eliminable_junto_a_persona_autorizada?
+    return false if administrador_fon?
+
+    documento_emitidos.none? && documento_recibidos.none?
   end
 end

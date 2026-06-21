@@ -1,0 +1,11 @@
+Hola <%= @nombre %>,
+
+Se creó una cuenta de persona autorizada en FacturaOn con este correo.
+Para confirmar que controlas esta dirección, abre este enlace:
+
+<%= @verification_url %>
+
+El enlace expira en <%= @expiry_hours %> horas.
+Si no solicitaste este acceso, puedes ignorar este mensaje.
+
+Equipo FacturaOn

@@ -5,6 +5,9 @@ class PersonaAutorizada < ApplicationRecord
   self.record_timestamps = false
 
   before_update :set_fecha_actualizacion
+  before_validation :normalizar_componentes_nombre
+  before_destroy :limpiar_onboarding_del_usuario
+  after_destroy :eliminar_usuario_vinculado_si_corresponde
 
   belongs_to :user, optional: true
   has_many :certificados, dependent: :destroy
@@ -90,6 +93,35 @@ class PersonaAutorizada < ApplicationRecord
   end
 
   private
+
+  def normalizar_componentes_nombre
+    return if nombres.blank? && apellido_paterno.blank? && apellido_materno.blank?
+
+    normalizados = PersonasAutorizadas::NormalizarNombres.call(
+      nombres: nombres,
+      apellido_paterno: apellido_paterno,
+      apellido_materno: apellido_materno
+    )
+
+    self.nombres = normalizados[:nombres] if nombres.present?
+    self.apellido_paterno = normalizados[:apellido_paterno] if apellido_paterno.present?
+    self.apellido_materno = normalizados[:apellido_materno] if apellido_materno.present?
+  end
+
+  def limpiar_onboarding_del_usuario
+    @login_user_id = user_id
+    user&.onboarding_tokens&.destroy_all
+  end
+
+  def eliminar_usuario_vinculado_si_corresponde
+    return if @login_user_id.blank?
+
+    login_user = User.find_by(id: @login_user_id)
+    return unless login_user
+    return unless login_user.eliminable_junto_a_persona_autorizada?
+
+    login_user.destroy!
+  end
 
   def set_fecha_actualizacion
     self.fecha_actualizacion = Time.current

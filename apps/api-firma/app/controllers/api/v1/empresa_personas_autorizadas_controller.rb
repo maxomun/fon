@@ -47,10 +47,19 @@ module Api
         )
 
         if asignacion.save
+          onboarding_email_enviado = false
+          if resultado_usuario.created? || resultado_usuario.linked?
+            envio = PersonasAutorizadas::EnviarVerificacionEmail.call(user: persona.user)
+            onboarding_email_enviado = envio.enviado
+          end
+
           render_success(
             data: persona_autorizada_asignada_payload(persona, asignacion: asignacion),
             status: :created,
-            message: 'Persona autorizada asignada a la empresa exitosamente'
+            message: mensaje_onboarding(
+              onboarding_email_enviado: onboarding_email_enviado,
+              accion: :asignada
+            )
           )
         else
           render_persona_validation_error(asignacion)

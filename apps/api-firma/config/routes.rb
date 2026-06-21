@@ -14,6 +14,12 @@ Rails.application.routes.draw do
         post 'refresh', to: 'authentication#refresh'
         delete 'logout', to: 'authentication#logout'
         get 'me', to: 'authentication#me'
+
+        scope :onboarding do
+          post 'verificar-email', to: 'onboarding#verificar_email'
+          post 'establecer-password', to: 'onboarding#establecer_password'
+          post 'reenviar-verificacion', to: 'onboarding#reenviar_verificacion'
+        end
       end
 
 
@@ -58,7 +64,11 @@ Rails.application.routes.draw do
 
       resources :tipo_documentos, only: [:index]
 
-      resources :personas_autorizadas, only: [:index, :show, :create, :update, :destroy]
+      resources :personas_autorizadas, only: [:index, :show, :create, :update, :destroy] do
+        member do
+          post :reenviar_onboarding
+        end
+      end
 
       resources :actecos, only: [:index]
 

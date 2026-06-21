@@ -67,6 +67,27 @@ p {
   font-size: 0.95rem;
 }
 
+.auth-footer-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.auth-footer-link a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.auth-footer-link a:hover {
+  text-decoration: underline;
+}
+
+.auth-footer-text {
+  margin: 0.75rem 0 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* App shell */
 .app-shell {
   min-height: 100vh;
@@ -480,6 +501,21 @@ p {
   color: #6b7280;
 }
 
+.badge--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge--warning {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -508,6 +544,19 @@ p {
 
 .login-form__submit {
   margin-top: 0.5rem;
+}
+
+.login-form__onboarding {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.login-form__onboarding-text {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .loading-screen {

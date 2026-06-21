@@ -44,10 +44,7 @@ module PersonasAutorizadas
         return vincular_usuario_existente(existing_user)
       end
 
-      password = @password.presence || default_password
-      if password.blank?
-        return failure(['Configure PERSONA_AUTORIZADA_DEFAULT_PASSWORD para crear usuarios de personas autorizadas'])
-      end
+      password = provisioning_password
 
       user = nil
 
@@ -62,7 +59,10 @@ module PersonasAutorizadas
           visible: true,
           nombres: @persona_autorizada.nombres,
           apellido_paterno: @persona_autorizada.apellido_paterno,
-          apellido_materno: @persona_autorizada.apellido_materno
+          apellido_materno: @persona_autorizada.apellido_materno,
+          email_verificado_at: nil,
+          onboarding_completado_at: nil,
+          debe_cambiar_password: true
         )
 
         @persona_autorizada.update!(user: user)
@@ -126,6 +126,10 @@ module PersonasAutorizadas
 
     def default_password
       ENV.fetch(DEFAULT_PASSWORD_ENV, nil).presence
+    end
+
+    def provisioning_password
+      @password.presence || default_password || SecureRandom.alphanumeric(32)
     end
 
     def failure(errors)

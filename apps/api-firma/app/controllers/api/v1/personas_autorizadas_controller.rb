@@ -7,7 +7,7 @@ module Api
       include EmpresaAuthorizable
 
       before_action :require_administrador_fon!
-      before_action :set_persona_autorizada, only: [:show, :update, :destroy]
+      before_action :set_persona_autorizada, only: [:show, :update, :destroy, :reenviar_onboarding]
 
       # GET /api/v1/personas_autorizadas?q=
       def index
@@ -49,7 +49,10 @@ module Api
           render_success(
             data: persona_autorizada_payload(resultado.persona_autorizada),
             status: :created,
-            message: 'Persona autorizada creada exitosamente'
+            message: mensaje_onboarding(
+              onboarding_email_enviado: resultado.onboarding_email_enviado,
+              accion: :creada
+            )
           )
         else
           render_error(
@@ -63,16 +66,42 @@ module Api
 
       # PATCH/PUT /api/v1/personas_autorizadas/:id
       def update
+        @onboarding_email_enviado = false
+
         if @persona_autorizada.update(persona_autorizada_params_for_update)
           asegurar_usuario_vinculado!
           return if performed?
 
           render_success(
             data: persona_autorizada_payload(@persona_autorizada, include_empresas: true),
-            message: 'Persona autorizada actualizada exitosamente'
+            message: mensaje_onboarding(
+              onboarding_email_enviado: @onboarding_email_enviado,
+              accion: :actualizada
+            )
           )
         else
           render_persona_validation_error(@persona_autorizada)
+        end
+      end
+
+      # POST /api/v1/personas_autorizadas/:id/reenviar_onboarding
+      def reenviar_onboarding
+        resultado = PersonasAutorizadas::ReenviarOnboarding.call(
+          persona_autorizada: @persona_autorizada
+        )
+
+        if resultado.success?
+          render_success(
+            data: persona_autorizada_payload(@persona_autorizada),
+            message: mensaje_reenvio_onboarding(paso: resultado.paso)
+          )
+        else
+          render_error(
+            'No se pudo reenviar el correo de enrolamiento',
+            :unprocessable_entity,
+            code: 'ONBOARDING_RESEND_FAILED',
+            errors: resultado.errors
+          )
         end
       end
 
@@ -137,14 +166,19 @@ module Api
           persona_autorizada: @persona_autorizada,
           password: params.dig(:persona_autorizada, :password)
         )
-        return if resultado.success?
 
-        render_error(
-          'Persona actualizada pero no se pudo provisionar el usuario',
-          :unprocessable_entity,
-          code: 'VALIDATION_ERROR',
-          errors: resultado.errors
-        )
+        unless resultado.success?
+          render_error(
+            'Persona actualizada pero no se pudo provisionar el usuario',
+            :unprocessable_entity,
+            code: 'VALIDATION_ERROR',
+            errors: resultado.errors
+          )
+          return
+        end
+
+        envio = PersonasAutorizadas::EnviarVerificacionEmail.call(user: @persona_autorizada.user)
+        @onboarding_email_enviado = envio.enviado
       end
     end
   end
