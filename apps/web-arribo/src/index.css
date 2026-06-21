@@ -450,6 +450,43 @@ p {
   border-color: #c0392b;
 }
 
+.field-password {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-password input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.field-password__toggle {
+  position: absolute;
+  right: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+}
+
+.field-password__toggle:hover:not(:disabled) {
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.field-password__toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .field-error {
   color: #c0392b;
   font-size: 0.8rem;

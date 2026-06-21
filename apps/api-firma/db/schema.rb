@@ -225,7 +225,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.index ["expires_at"], name: "idx_onboarding_tokens_expires_at"
     t.index ["token_digest"], name: "uq_onboarding_tokens_token_digest", unique: true
     t.index ["user_id", "proposito"], name: "idx_onboarding_tokens_user_proposito_activo", where: "(used_at IS NULL)"
-    t.check_constraint "proposito::text = ANY (ARRAY['verificar_email'::character varying, 'establecer_password'::character varying]::text[])", name: "chk_onboarding_tokens_proposito"
+    t.check_constraint "proposito::text = ANY (ARRAY['verificar_email'::character varying, 'establecer_password'::character varying, 'restablecer_password'::character varying]::text[])", name: "chk_onboarding_tokens_proposito"
   end
 
   create_table "paises", id: :serial, comment: "Catálogo de países soportados por la plataforma.", force: :cascade do |t|

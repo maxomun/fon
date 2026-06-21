@@ -5,9 +5,11 @@ class OnboardingToken < ApplicationRecord
 
   PROPOSITO_VERIFICAR_EMAIL = 'verificar_email'
   PROPOSITO_ESTABLECER_PASSWORD = 'establecer_password'
+  PROPOSITO_RESTABLECER_PASSWORD = 'restablecer_password'
   PROPOSITOS = [
     PROPOSITO_VERIFICAR_EMAIL,
-    PROPOSITO_ESTABLECER_PASSWORD
+    PROPOSITO_ESTABLECER_PASSWORD,
+    PROPOSITO_RESTABLECER_PASSWORD
   ].freeze
 
   belongs_to :user
@@ -19,6 +21,7 @@ class OnboardingToken < ApplicationRecord
   scope :activos, -> { where(used_at: nil).where('expires_at > ?', Time.current) }
   scope :verificar_email, -> { where(proposito: PROPOSITO_VERIFICAR_EMAIL) }
   scope :establecer_password, -> { where(proposito: PROPOSITO_ESTABLECER_PASSWORD) }
+  scope :restablecer_password, -> { where(proposito: PROPOSITO_RESTABLECER_PASSWORD) }
 
   def self.digest(raw_token)
     Digest::SHA256.hexdigest(raw_token.to_s)

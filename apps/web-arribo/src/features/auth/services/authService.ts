@@ -5,6 +5,9 @@ import type {
   MeResponse,
   RefreshResponse,
   ReenviarVerificacionResponse,
+  RestablecerPasswordInput,
+  RestablecerPasswordResponse,
+  SolicitarRestablecimientoResponse,
 } from '@/features/auth/types/auth.types'
 
 const AUTH_BASE = '/api/v1/auth'
@@ -35,6 +38,20 @@ export const authService = {
     return apiClient.post<ReenviarVerificacionResponse>(
       `${AUTH_BASE}/onboarding/reenviar-verificacion`,
       { email },
+    )
+  },
+
+  solicitarRestablecimientoPassword(email: string) {
+    return apiClient.post<SolicitarRestablecimientoResponse>(
+      `${AUTH_BASE}/password/solicitar-restablecimiento`,
+      { email },
+    )
+  },
+
+  restablecerPassword(input: RestablecerPasswordInput) {
+    return apiClient.post<RestablecerPasswordResponse>(
+      `${AUTH_BASE}/password/restablecer`,
+      input,
     )
   },
 }

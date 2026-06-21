@@ -20,6 +20,11 @@ Rails.application.routes.draw do
           post 'establecer-password', to: 'onboarding#establecer_password'
           post 'reenviar-verificacion', to: 'onboarding#reenviar_verificacion'
         end
+
+        scope :password do
+          post 'solicitar-restablecimiento', to: 'password#solicitar_restablecimiento'
+          post 'restablecer', to: 'password#restablecer'
+        end
       end
 
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button, LoadingScreen } from '@/components/ui'
 import { LoginForm } from '@/features/auth/components/LoginForm'
@@ -83,6 +83,10 @@ export function LoginPage() {
         isLoading={isSubmitting}
         error={error}
       />
+
+      <p className="auth-footer-link">
+        <Link to="/olvide-contrasena">¿Olvidaste tu contraseña?</Link>
+      </p>
 
       {onboardingCode === 'EMAIL_NOT_VERIFIED' ? (
         <div className="login-form__onboarding">

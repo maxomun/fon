@@ -80,3 +80,38 @@ export interface ReenviarVerificacionResponse {
   success: boolean
   message: string
 }
+
+export const PASSWORD_RESET_ONBOARDING_CODES = [
+  'ONBOARDING_EMAIL_PENDIENTE',
+  'ONBOARDING_INCOMPLETO',
+  'PASSWORD_RESET_RATE_LIMITED',
+] as const
+
+export type PasswordResetOnboardingCode =
+  (typeof PASSWORD_RESET_ONBOARDING_CODES)[number]
+
+export function isPasswordResetOnboardingCode(
+  code: string | undefined,
+): code is PasswordResetOnboardingCode {
+  return PASSWORD_RESET_ONBOARDING_CODES.includes(code as PasswordResetOnboardingCode)
+}
+
+export interface SolicitarRestablecimientoResponse {
+  success: boolean
+  message: string
+  code?: PasswordResetOnboardingCode | null
+  data?: {
+    enviado?: boolean
+  }
+}
+
+export interface RestablecerPasswordInput {
+  token: string
+  password: string
+  password_confirmation: string
+}
+
+export interface RestablecerPasswordResponse {
+  success: boolean
+  message: string
+}

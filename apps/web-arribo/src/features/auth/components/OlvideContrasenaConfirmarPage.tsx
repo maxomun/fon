@@ -2,23 +2,23 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button, Input } from '@/components/ui'
-import { onboardingService } from '@/features/auth/services/onboardingService'
+import { authService } from '@/features/auth/services/authService'
 import {
-  hasOnboardingPasswordErrors,
+  hasPasswordFormErrors,
   PASSWORD_POLICY_HINT,
-  validateOnboardingPassword,
-} from '@/features/auth/utils/validateOnboardingPassword'
-import type { EstablecerPasswordFormErrors } from '@/features/auth/types/onboarding.types'
+  validatePassword,
+} from '@/features/auth/utils/validatePassword'
+import type { PasswordFormErrors } from '@/features/auth/utils/validatePassword'
 import { ApiError } from '@/services/apiClient'
 
-export function OnboardingEstablecerPasswordPage() {
+export function OlvideContrasenaConfirmarPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const token = searchParams.get('token')?.trim() ?? ''
 
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<EstablecerPasswordFormErrors>({})
+  const [fieldErrors, setFieldErrors] = useState<PasswordFormErrors>({})
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,10 +32,10 @@ export function OnboardingEstablecerPasswordPage() {
       return
     }
 
-    const errors = validateOnboardingPassword(password, passwordConfirmation)
+    const errors = validatePassword(password, passwordConfirmation)
     setFieldErrors(errors)
 
-    if (hasOnboardingPasswordErrors(errors)) {
+    if (hasPasswordFormErrors(errors)) {
       return
     }
 
@@ -43,7 +43,7 @@ export function OnboardingEstablecerPasswordPage() {
     setError(null)
 
     try {
-      const response = await onboardingService.establecerPassword({
+      const response = await authService.restablecerPassword({
         token,
         password,
         password_confirmation: passwordConfirmation,
@@ -54,7 +54,7 @@ export function OnboardingEstablecerPasswordPage() {
       setError(
         err instanceof ApiError
           ? err.message
-          : 'No se pudo establecer la contraseña.',
+          : 'No se pudo restablecer la contraseña.',
       )
     } finally {
       setIsSubmitting(false)
@@ -63,12 +63,13 @@ export function OnboardingEstablecerPasswordPage() {
 
   if (!token) {
     return (
-      <AuthLayout title="Establecer contraseña" subtitle="Enlace de enrolamiento inválido">
+      <AuthLayout title="Restablecer contraseña" subtitle="Enlace inválido">
         <Alert variant="error">
-          El enlace no incluye un token válido. Complete primero la verificación de correo.
+          El enlace no incluye un token válido. Solicite uno nuevo desde la pantalla
+          de recuperación.
         </Alert>
         <p className="auth-footer-link">
-          <Link to="/login">Volver al inicio de sesión</Link>
+          <Link to="/olvide-contrasena">Solicitar nuevo enlace</Link>
         </p>
       </AuthLayout>
     )
@@ -76,9 +77,9 @@ export function OnboardingEstablecerPasswordPage() {
 
   if (isCompleted) {
     return (
-      <AuthLayout title="Cuenta lista" subtitle="Enrolamiento completado">
+      <AuthLayout title="Contraseña actualizada" subtitle="Ya puede iniciar sesión">
         <Alert variant="success">
-          {successMessage ?? 'Contraseña establecida exitosamente. Ya puede iniciar sesión.'}
+          {successMessage ?? 'Contraseña restablecida exitosamente.'}
         </Alert>
         <Button onClick={() => navigate('/login')}>Ir al inicio de sesión</Button>
       </AuthLayout>
@@ -86,7 +87,7 @@ export function OnboardingEstablecerPasswordPage() {
   }
 
   return (
-    <AuthLayout title="Establecer contraseña" subtitle="Defina su clave de acceso a FacturaOn">
+    <AuthLayout title="Restablecer contraseña" subtitle="Defina su nueva clave de acceso">
       <form className="login-form" onSubmit={handleSubmit} noValidate>
         {error ? <Alert variant="error">{error}</Alert> : null}
 
