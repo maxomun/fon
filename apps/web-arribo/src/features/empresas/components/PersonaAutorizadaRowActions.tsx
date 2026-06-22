@@ -37,7 +37,7 @@ export function PersonaAutorizadaRowActions({
   const adminLabel = persona.es_administrador_empresa ? 'Quitar admin' : 'Hacer admin'
 
   const reenviarItem =
-    isFonAdmin && puedeReenviarOnboarding(persona)
+    puedeReenviarOnboarding(persona)
       ? [
           {
             id: 'reenviar-onboarding',
@@ -57,11 +57,15 @@ export function PersonaAutorizadaRowActions({
       disabled: isAssigning,
       onClick: onAssign ? () => onAssign(persona) : undefined,
     },
-    {
-      id: 'editar',
-      label: 'Editar',
-      onClick: () => onEdit(persona),
-    },
+    ...(isFonAdmin
+      ? [
+          {
+            id: 'editar',
+            label: 'Editar',
+            onClick: () => onEdit(persona),
+          },
+        ]
+      : []),
     ...reenviarItem,
     ...(isFonAdmin
       ? [

@@ -93,4 +93,65 @@ namespace :mailer do
     puts "Logo embebido: #{MailerConfig.logo_file_path} (#{File.exist?(MailerConfig.logo_file_path) ? 'ok' : 'no encontrado'})"
     puts "Logo URL externo: #{MailerConfig.logo_url || '(no configurado; se usa embebido)'}"
   end
+
+  desc 'Prueba conexión TCP y autenticación SMTP (sin enviar correo)'
+  task test_auth: :environment do
+    unless MailerConfig.smtp_configured?
+      puts 'Error: configure SMTP_USERNAME y SMTP_PASSWORD en .env'
+      exit 1
+    end
+
+    settings = MailerConfig.smtp_settings
+    user = settings[:user_name]
+    pass = settings[:password]
+
+    puts '=== Diagnóstico SMTP (sin mostrar secretos) ==='
+    puts "Usuario: #{user}"
+    puts "Longitud password: #{pass.length} caracteres"
+    puts "Password con espacios: #{pass.match?(/\s/) ? 'sí (quitar)' : 'no'}"
+    puts "MAIL_FROM: #{MailerConfig.from_email}"
+    puts "From = SMTP user: #{MailerConfig.from_email == user ? 'sí' : 'no (revisar)'}"
+    puts ''
+
+    host = settings[:address]
+    port = settings[:port]
+
+    begin
+      Timeout.timeout(10) do
+        socket = TCPSocket.new(host, port)
+        banner = socket.gets
+        socket.close
+        puts "TCP #{host}:#{port} -> OK (#{banner&.strip})"
+      end
+    rescue StandardError => e
+      puts "TCP #{host}:#{port} -> FALLO (#{e.class}: #{e.message})"
+      exit 1
+    end
+
+    puts ''
+    puts 'Autenticación SMTP...'
+
+    begin
+      smtp = Net::SMTP.new(host, port)
+      smtp.open_timeout = settings[:open_timeout]
+      smtp.read_timeout = settings[:read_timeout]
+      smtp.enable_starttls_auto if settings[:enable_starttls_auto]
+      smtp.start(settings[:domain], user, pass, settings[:authentication]) do
+        puts 'RESULTADO: AUTH OK — Gmail aceptó usuario y contraseña'
+      end
+    rescue Net::SMTPAuthenticationError => e
+      puts "RESULTADO: AUTH FALLÓ — #{e.message.lines.first&.strip}"
+      puts ''
+      puts 'La red llega a Gmail, pero la cuenta rechaza las credenciales.'
+      puts 'Revise en https://myaccount.google.com/apppasswords :'
+      puts '  - Verificación en 2 pasos activa'
+      puts '  - App Password nueva (16 caracteres, sin espacios)'
+      puts '  - Generada para la misma cuenta que SMTP_USERNAME'
+      puts '  - No revocada (cambiar contraseña de Google la invalida)'
+      exit 1
+    rescue StandardError => e
+      puts "RESULTADO: ERROR — #{e.class}: #{e.message.lines.first&.strip}"
+      exit 1
+    end
+  end
 end

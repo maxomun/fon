@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, Button, Checkbox, ConfirmDialog, Input } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -7,6 +8,10 @@ import { hasAccesoGlobal } from '@/features/auth/utils/roles'
 import { PersonaAutorizadaEditModal } from '@/features/empresas/components/PersonaAutorizadaEditModal'
 import { PersonaAutorizadaOnboardingBadge } from '@/features/empresas/components/PersonaAutorizadaOnboardingBadge'
 import { PersonaAutorizadaRowActions } from '@/features/empresas/components/PersonaAutorizadaRowActions'
+import {
+  hasPendingOnboarding,
+  useOnboardingStatusPoll,
+} from '@/features/empresas/hooks/useOnboardingStatusPoll'
 import { empresaPersonasAutorizadasService } from '@/features/empresas/services/empresaPersonasAutorizadasService'
 import { empresasService } from '@/features/empresas/services/empresasService'
 import { personaAutorizadaService } from '@/features/empresas/services/personaAutorizadaService'
@@ -60,11 +65,43 @@ export function EmpresaPersonasAutorizadasPage() {
   const [pageError, setPageError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [isRefreshingAssigned, setIsRefreshingAssigned] = useState(false)
 
-  const loadAssigned = useCallback(async () => {
-    const response = await empresaPersonasAutorizadasService.listAssigned(empresaId)
-    setAssignedPersonas(response.data)
-  }, [empresaId])
+  const loadAssigned = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!Number.isFinite(empresaId) || empresaId <= 0) {
+        return
+      }
+
+      if (options?.silent) {
+        setIsRefreshingAssigned(true)
+      }
+
+      try {
+        const response = await empresaPersonasAutorizadasService.listAssigned(empresaId)
+        setAssignedPersonas(response.data)
+      } catch (error) {
+        if (!options?.silent) {
+          setActionError(
+            error instanceof ApiError
+              ? error.message
+              : 'No se pudieron actualizar las personas asignadas',
+          )
+        }
+      } finally {
+        if (options?.silent) {
+          setIsRefreshingAssigned(false)
+        }
+      }
+    },
+    [empresaId],
+  )
+
+  const refreshAssignedSilent = useCallback(() => {
+    return loadAssigned({ silent: true })
+  }, [loadAssigned])
+
+  useOnboardingStatusPoll(assignedPersonas, refreshAssignedSilent)
 
   const loadPage = useCallback(async () => {
     if (!Number.isFinite(empresaId) || empresaId <= 0) {
@@ -108,7 +145,10 @@ export function EmpresaPersonasAutorizadasPage() {
     setActionError(null)
 
     try {
-      const response = await personaAutorizadaService.list(searchQuery, empresaId)
+      const response = await empresaPersonasAutorizadasService.searchAvailable(
+        empresaId,
+        searchQuery,
+      )
       setSearchResults(response.data)
     } catch (error) {
       setActionError(
@@ -161,11 +201,14 @@ export function EmpresaPersonasAutorizadasPage() {
     setSuccessMessage(null)
 
     try {
-      const created = await personaAutorizadaService.create(createValues)
-      await empresaPersonasAutorizadasService.assign(empresaId, created.data.id, {
-        esAdministradorEmpresa: createAssignAsAdmin,
-      })
-      setSuccessMessage('Persona autorizada creada y asignada a la empresa')
+      const response = await empresaPersonasAutorizadasService.createAndAssign(
+        empresaId,
+        createValues,
+        { esAdministradorEmpresa: createAssignAsAdmin },
+      )
+      setSuccessMessage(
+        response.message ?? 'Persona autorizada creada y asignada a la empresa',
+      )
       setCreateValues(emptyPersonaAutorizadaInput())
       setCreateAssignAsAdmin(false)
       await loadAssigned()
@@ -225,7 +268,9 @@ export function EmpresaPersonasAutorizadasPage() {
     setSuccessMessage(null)
 
     try {
-      const response = await personaAutorizadaService.reenviarOnboarding(persona.id)
+      const response = isFonAdmin
+        ? await personaAutorizadaService.reenviarOnboarding(persona.id)
+        : await empresaPersonasAutorizadasService.reenviarOnboarding(empresaId, persona.id)
       syncPersonaInLists(response.data)
       setSuccessMessage(
         response.message ?? 'Correo de enrolamiento reenviado exitosamente',
@@ -263,7 +308,13 @@ export function EmpresaPersonasAutorizadasPage() {
     setSuccessMessage(null)
 
     try {
-      const response = await personaAutorizadaService.update(personaToEdit.id, values)
+      const response = isFonAdmin
+        ? await personaAutorizadaService.update(personaToEdit.id, values)
+        : await empresaPersonasAutorizadasService.updatePersona(
+            empresaId,
+            personaToEdit.id,
+            values,
+          )
       setSuccessMessage(response.message ?? 'Persona autorizada actualizada exitosamente')
       setSearchResults((current) =>
         current.map((item) => (item.id === response.data.id ? response.data : item)),
@@ -405,7 +456,19 @@ export function EmpresaPersonasAutorizadasPage() {
       {actionError ? <Alert variant="error">{actionError}</Alert> : null}
 
       <section className="panel-card">
-        <h2>Asignadas a esta empresa</h2>
+        <div className="panel-card__title-row">
+          <h2>Asignadas a esta empresa</h2>
+          {isRefreshingAssigned ? (
+            <span className="panel-card__refresh-indicator" aria-live="polite">
+              <Loader2 className="size-3.5 animate-spin" />
+              Actualizando…
+            </span>
+          ) : hasPendingOnboarding(assignedPersonas) ? (
+            <span className="panel-card__refresh-hint">
+              Enrolamiento se actualiza automáticamente
+            </span>
+          ) : null}
+        </div>
         {assignedPersonas.length === 0 ? (
           <p className="placeholder">
             Esta empresa no tiene personas autorizadas asignadas.

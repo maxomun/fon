@@ -58,7 +58,14 @@ Rails.application.routes.draw do
         resources :actecos, only: [:index, :create, :destroy], controller: 'empresa_actecos'
         resources :personas_autorizadas,
                   only: [:index, :create, :update, :destroy],
-                  controller: 'empresa_personas_autorizadas'
+                  controller: 'empresa_personas_autorizadas' do
+          collection do
+            get :buscar
+          end
+          member do
+            post :reenviar_onboarding
+          end
+        end
         resources :tipos_habilitados,
                   only: [:index, :create, :update, :destroy],
                   controller: 'empresa_tipos_habilitados'
@@ -72,6 +79,13 @@ Rails.application.routes.draw do
       resources :personas_autorizadas, only: [:index, :show, :create, :update, :destroy] do
         member do
           post :reenviar_onboarding
+        end
+      end
+
+      resources :usuarios, only: [:index, :show, :create, :update] do
+        member do
+          patch :estado
+          post :reenviar_acceso
         end
       end
 

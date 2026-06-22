@@ -75,6 +75,8 @@ module PersonaAutorizadaSerializable
       base = 'Persona autorizada creada exitosamente'
     when :asignada
       base = 'Persona autorizada asignada a la empresa exitosamente'
+    when :creada_y_asignada
+      base = 'Persona autorizada creada y asignada a la empresa exitosamente'
     when :actualizada
       base = 'Persona autorizada actualizada exitosamente'
     else

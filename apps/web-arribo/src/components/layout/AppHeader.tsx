@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { Loader2, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { Badge } from '@/components/ui/shadcn/badge'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -8,10 +9,21 @@ import { displayUserName, formatRoles, hasAccesoGlobal } from '@/features/auth/u
 export function AppHeader() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   async function handleLogout() {
-    await logout()
-    navigate('/login', { replace: true })
+    if (isLoggingOut) {
+      return
+    }
+
+    setIsLoggingOut(true)
+
+    try {
+      await logout()
+      navigate('/login', { replace: true })
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   const displayName = displayUserName(user)
@@ -33,9 +45,23 @@ export function AppHeader() {
           </div>
         </div>
 
-        <Button variant="secondary" className="shrink-0" onClick={() => void handleLogout()}>
-          <LogOut className="size-4" />
-          Cerrar sesión
+        <Button
+          variant="secondary"
+          className="shrink-0"
+          disabled={isLoggingOut}
+          onClick={() => void handleLogout()}
+        >
+          {isLoggingOut ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Cerrando sesión…
+            </>
+          ) : (
+            <>
+              <LogOut className="size-4" />
+              Cerrar sesión
+            </>
+          )}
         </Button>
       </div>
     </header>
