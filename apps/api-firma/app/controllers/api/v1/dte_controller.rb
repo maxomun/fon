@@ -176,7 +176,7 @@ module Api
         end
 
         @empresa_auditoria_dte = empresa
-        items_array = preparar_items(params[:items])
+        items_array = preparar_items(params[:items], empresa_id: empresa.id)
 
         # Etapa 2: simula render PDF (Prawn) para saber cuántos ítems caben por página
         archivo_temp = Rails.root.join('tmp', "dte_#{empresa.id}_#{Time.current.to_i}.pdf")
@@ -292,7 +292,7 @@ module Api
         end
 
         @empresa_auditoria_dte = empresa
-        items_array = preparar_items(params[:items])
+        items_array = preparar_items(params[:items], empresa_id: empresa.id)
 
         archivo_pdf = Rails.root.join('tmp', "dte_#{empresa.id}_#{Time.current.to_i}.pdf")
         @archivos_temporales << archivo_pdf
@@ -573,7 +573,7 @@ module Api
         certificado = resolucion_certificado.certificado
         persona_autorizada = resolucion_certificado.persona_autorizada
 
-        items_array = preparar_items(params[:items])
+        items_array = preparar_items(params[:items], empresa_id: empresa.id)
 
         archivo_pdf = Rails.root.join('tmp', "dte_firma_#{empresa.id}_#{Time.current.to_i}.pdf")
         @archivos_temporales << archivo_pdf
@@ -809,7 +809,7 @@ module Api
         errores
       end
 
-      def preparar_items(items_params)
+      def preparar_items(items_params, empresa_id:)
         # Convierte { producto_id, cantidad } del request en ítems listos para clasificar y XML
         items_params.map do |item|
           producto_id = (item[:producto_id] || item['producto_id']).to_i
@@ -817,8 +817,16 @@ module Api
           descuento_pct = (item[:descuento_pct] || item['descuento_pct'] || 0).to_f
           descuento = (item[:descuento] || item['descuento'] || 0).to_f
 
-          # Obtener producto de la base de datos
-          producto = Producto.includes(:impuestos).find(producto_id)
+          producto = Producto.includes(:impuestos, :producto_impuestos)
+                             .find_by(id: producto_id, empresa_id: empresa_id)
+
+          unless producto
+            raise ActiveRecord::RecordNotFound, "Producto #{producto_id} no encontrado para la empresa"
+          end
+
+          unless producto.activo?
+            raise StandardError, "El producto #{producto.codigo} está inactivo"
+          end
 
           # Afecto = tiene impuestos asociados en producto_impuestos (ej: IVA 19%)
           afecto = producto.producto_impuestos.any?

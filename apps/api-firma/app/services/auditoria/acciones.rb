@@ -10,6 +10,7 @@ module Auditoria
     CATEGORIA_FOLIOS = 'folios'
     CATEGORIA_CATALOGO = 'catalogo'
     CATEGORIA_DTE = 'dte'
+    CATEGORIA_PRODUCTOS = 'productos'
 
     AUTH_LOGIN_EXITOSO = 'auth.login_exitoso'
     AUTH_LOGIN_FALLIDO = 'auth.login_fallido'
@@ -69,6 +70,10 @@ module Auditoria
     DTE_FIRMAR = 'dte.firmar'
     DTE_EMITIR = 'dte.emitir'
 
+    PRODUCTO_CREAR = 'producto.crear'
+    PRODUCTO_ACTUALIZAR = 'producto.actualizar'
+    PRODUCTO_ELIMINAR = 'producto.eliminar'
+
     ETIQUETAS = {
       AUTH_LOGIN_EXITOSO => 'Inicio de sesión exitoso',
       AUTH_LOGIN_FALLIDO => 'Inicio de sesión fallido',
@@ -119,7 +124,10 @@ module Auditoria
       DTE_PREPARAR => 'Preparó DTE',
       DTE_GENERAR_XML => 'Generó XML de DTE',
       DTE_FIRMAR => 'Firmó DTE',
-      DTE_EMITIR => 'Emitió DTE'
+      DTE_EMITIR => 'Emitió DTE',
+      PRODUCTO_CREAR => 'Creó producto',
+      PRODUCTO_ACTUALIZAR => 'Actualizó producto',
+      PRODUCTO_ELIMINAR => 'Eliminó producto'
     }.freeze
 
     def self.etiqueta(accion)

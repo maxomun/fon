@@ -75,6 +75,7 @@ export const CATEGORIA_OPCIONES = [
   { value: 'certificados', label: 'Certificados' },
   { value: 'folios', label: 'Folios' },
   { value: 'dte', label: 'DTE' },
+  { value: 'productos', label: 'Productos' },
   { value: 'catalogo', label: 'Catálogo' },
 ] as const
 

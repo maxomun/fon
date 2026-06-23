@@ -12,6 +12,7 @@ interface EmpresaRowActionsProps {
   onPersonasAutorizadas?: (empresa: Empresa) => void
   onCertificados?: (empresa: Empresa) => void
   onAuditoria?: (empresa: Empresa) => void
+  onProductos?: (empresa: Empresa) => void
 }
 
 export function EmpresaRowActions({
@@ -25,6 +26,7 @@ export function EmpresaRowActions({
   onPersonasAutorizadas,
   onCertificados,
   onAuditoria,
+  onProductos,
 }: EmpresaRowActionsProps) {
   return (
     <DropdownMenu
@@ -64,6 +66,12 @@ export function EmpresaRowActions({
           onClick: onPersonasAutorizadas
             ? () => onPersonasAutorizadas(empresa)
             : undefined,
+        },
+        {
+          id: 'productos',
+          label: 'Productos',
+          disabled: !onProductos,
+          onClick: onProductos ? () => onProductos(empresa) : undefined,
         },
         {
           id: 'auditoria',

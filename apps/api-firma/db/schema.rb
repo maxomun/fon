@@ -283,16 +283,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   create_table "producto_impuestos", id: :serial, force: :cascade do |t|
     t.integer "impuesto_id", null: false
     t.integer "producto_id", null: false
-
+    t.index ["producto_id"], name: "idx_producto_impuestos_producto_id"
     t.unique_constraint ["impuesto_id", "producto_id"], name: "uq_producto_impuestos"
   end
 
-  create_table "productos", id: :integer, default: nil, force: :cascade do |t|
+  create_table "productos", id: :serial, force: :cascade do |t|
     t.string "codigo", limit: 50, null: false
     t.string "nombre", limit: 250, null: false
     t.integer "empresa_id", null: false
-    t.decimal "precio_unitario", precision: 10, scale: 2, null: false
-
+    t.decimal "precio_unitario", precision: 10, scale: 2, null: false, comment: "Precio vigente al emitir; sin historial de precios en MVP."
+    t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false, comment: "Alta del producto en el catálogo de la empresa."
+    t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false, comment: "Última modificación de datos del producto (precio, nombre, impuestos, etc.)."
+    t.boolean "activo", default: true, null: false, comment: "FALSE = no se ofrece en emisión; no borra historial de ventas."
+    t.index ["empresa_id", "activo"], name: "idx_productos_empresa_activo"
+    t.index ["empresa_id", "codigo"], name: "idx_productos_empresa_codigo"
+    t.index ["empresa_id"], name: "idx_productos_empresa_id"
     t.unique_constraint ["codigo", "empresa_id"], name: "uq_productos_codigo"
   end
 
@@ -435,8 +440,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "impuestos", "paises", name: "fk_impuestos_paises"
   add_foreign_key "onboarding_tokens", "users", name: "fk_onboarding_tokens_users", on_delete: :cascade
   add_foreign_key "personas_autorizadas", "users", name: "fk_personas_autorizadas_users"
-  add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos"
-  add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos"
+  add_foreign_key "producto_impuestos", "impuestos", name: "fk_producto_impuestos_impuestos", on_delete: :restrict
+  add_foreign_key "producto_impuestos", "productos", name: "fk_producto_impuesto_productos", on_delete: :cascade
+  add_foreign_key "productos", "empresas", name: "fk_productos_empresas", on_delete: :cascade
   add_foreign_key "rango_folios", "tipo_habilitados", name: "fk_folios_tipo_habilitados"
   add_foreign_key "refresh_tokens", "users"
   add_foreign_key "tipo_habilitados", "tipo_documentos", name: "fk_tipo_habilitados_tipo_documentos"

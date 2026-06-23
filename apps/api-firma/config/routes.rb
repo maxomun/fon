@@ -74,6 +74,13 @@ Rails.application.routes.draw do
         resources :rangos_folios,
                   only: [:index, :show, :create, :destroy],
                   controller: 'empresa_rango_folios'
+        resources :productos,
+                  only: [:index, :show, :create, :update, :destroy],
+                  controller: 'empresa_productos' do
+          collection do
+            get :impuestos_disponibles
+          end
+        end
       end
 
       resources :tipo_documentos, only: [:index]
