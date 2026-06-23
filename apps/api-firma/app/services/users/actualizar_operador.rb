@@ -19,7 +19,13 @@ module Users
     end
 
     def call
-      return failure(['Este usuario está vinculado a una persona autorizada y no se edita desde aquí']) if @user.persona_autorizada.present?
+      if @user.persona_autorizada.present?
+        return auditar_fallo(
+          failure(['Este usuario está vinculado a una persona autorizada y no se edita desde aquí'])
+        )
+      end
+
+      tenia_rol_fon = @user.administrador_fon?
 
       User.transaction do
         @user.assign_attributes(atributos_perfil)
@@ -39,14 +45,41 @@ module Users
         end
       end
 
-      Result.new(user: @user.reload, errors: [])
+      resultado = Result.new(user: @user.reload, errors: [])
+      auditar_exito(resultado, tenia_rol_fon: tenia_rol_fon)
+      resultado
     rescue ActiveRecord::RecordInvalid => e
-      failure(e.record.errors.full_messages)
+      auditar_fallo(failure(e.record.errors.full_messages))
     rescue StandardError => e
-      failure([e.message])
+      auditar_fallo(failure([e.message]))
     end
 
     private
+
+    def auditar_exito(resultado, tenia_rol_fon:)
+      cambios = Auditoria::Cambios.desde_modelo(resultado.user)
+      cambios['password'] = [nil, '[actualizada]'] if @attributes[:password].present?
+
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_ACTUALIZAR,
+        user: resultado.user,
+        cambios: cambios,
+        metadata: {
+          rol_fon_antes: tenia_rol_fon,
+          rol_fon_despues: resultado.user.administrador_fon?
+        }
+      )
+    end
+
+    def auditar_fallo(resultado)
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_ACTUALIZAR,
+        user: @user,
+        resultado: AuditEvent::RESULTADO_FALLO,
+        mensaje: resultado.errors.join(', ')
+      )
+      resultado
+    end
 
     def atributos_perfil
       permitted = {}

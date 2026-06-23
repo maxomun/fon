@@ -22,12 +22,14 @@ module Users
 
     def call
       if User.exists?(['LOWER(email) = ?', @attributes[:email].to_s.strip.downcase])
-        return failure(['El email ya está registrado'])
+        return auditar_fallo(failure(['El email ya está registrado']))
       end
 
       password_generada = @attributes[:password].blank?
       if password_generada && !@enviar_acceso
-        return failure(['Debe indicar contraseña o solicitar envío de acceso por correo'])
+        return auditar_fallo(
+          failure(['Debe indicar contraseña o solicitar envío de acceso por correo'])
+        )
       end
 
       password = @attributes[:password].presence || GenerarPassword.call
@@ -62,19 +64,44 @@ module Users
         acceso_enviado = resultado.enviado
       end
 
-      Result.new(
+      resultado = Result.new(
         user: user.reload,
         errors: [],
         password_generada: password_generada,
         acceso_enviado: acceso_enviado
       )
+      auditar_exito(resultado)
+      resultado
     rescue ActiveRecord::RecordInvalid => e
-      failure(e.record.errors.full_messages)
+      auditar_fallo(failure(e.record.errors.full_messages))
     rescue StandardError => e
-      failure([e.message])
+      auditar_fallo(failure([e.message]))
     end
 
     private
+
+    def auditar_exito(resultado)
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_CREAR,
+        user: resultado.user,
+        metadata: {
+          administrador_fon: cast_boolean(@attributes[:administrador_fon], default: true),
+          enviar_acceso: @enviar_acceso,
+          password_generada: resultado.password_generada,
+          acceso_enviado: resultado.acceso_enviado
+        }
+      )
+    end
+
+    def auditar_fallo(resultado)
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_CREAR,
+        resultado: AuditEvent::RESULTADO_FALLO,
+        mensaje: resultado.errors.join(', '),
+        metadata: { email: @attributes[:email].to_s.strip.downcase.presence }
+      )
+      resultado
+    end
 
     def username_para(attributes)
       explicito = attributes[:username].to_s.strip

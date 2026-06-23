@@ -17,6 +17,10 @@ module EmpresaAuthorizable
     return if current_user.administrador_fon?
     return if current_user.empresas_como_administrador.exists?
 
+    audit_acceso_denegado!(
+      codigo: 'FORBIDDEN',
+      mensaje: 'No tiene empresas asignadas para administrar'
+    )
     render_error(
       'No tiene empresas asignadas para administrar',
       :forbidden,

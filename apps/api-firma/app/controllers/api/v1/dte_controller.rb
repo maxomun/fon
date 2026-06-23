@@ -3,6 +3,8 @@
 module Api
   module V1
     class DteController < BaseController
+      include DteAuditable
+
       # Orquesta el pipeline de emisión DTE en etapas reutilizables:
       #
       #   1. preparar_items      → enriquece producto_id con datos de BD e impuestos
@@ -152,15 +154,28 @@ module Api
       #
       def preparar
         archivo_temp = nil
-        
-        # Validaciones
+
         errores = validar_params_preparar
-        return render json: { success: false, errors: errores }, status: :unprocessable_entity if errores.any?
+        if errores.any?
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_PREPARAR,
+            mensaje: errores.join(', '),
+            metadata: { fase: 'validacion' }
+          )
+          return render json: { success: false, errors: errores }, status: :unprocessable_entity
+        end
 
         empresa = Empresa.find_by(id: params[:empresa_id])
-        return render json: { success: false, error: 'Empresa no encontrada' }, status: :not_found unless empresa
+        unless empresa
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_PREPARAR,
+            mensaje: 'Empresa no encontrada',
+            metadata: { fase: 'empresa', empresa_id: params[:empresa_id] }
+          )
+          return render json: { success: false, error: 'Empresa no encontrada' }, status: :not_found
+        end
 
-        # Etapa 1: producto_id → ítem con precio, neto, afecto e impuestos
+        @empresa_auditoria_dte = empresa
         items_array = preparar_items(params[:items])
 
         # Etapa 2: simula render PDF (Prawn) para saber cuántos ítems caben por página
@@ -178,6 +193,13 @@ module Api
         )
 
         unless resultado_folios[:disponibles]
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_PREPARAR,
+            empresa: empresa,
+            mensaje: resultado_folios[:error],
+            metadata: metadata_dte_emision(empresa: empresa, fase: 'asignacion_folios'),
+            codigo_error: 'asignacion_folios'
+          )
           return render json: {
             success: false,
             error: resultado_folios[:error],
@@ -194,6 +216,18 @@ module Api
           paginas: resultado_folios[:paginas]
         )
 
+        auditar_dte(
+          accion: Auditoria::Acciones::DTE_PREPARAR,
+          empresa: empresa,
+          recurso_label: etiqueta_recurso_dte(folios: resultado_folios[:folios_usados]),
+          metadata: metadata_dte_emision(
+            empresa: empresa,
+            folios: resultado_folios[:folios_usados],
+            total_items: items_array.count,
+            total_paginas: resultado_folios[:paginas].count
+          )
+        )
+
         render json: {
           success: true,
           message: 'DTE preparado correctamente',
@@ -208,6 +242,12 @@ module Api
         }, status: :ok
 
       rescue StandardError => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_PREPARAR,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'excepcion' }
+        )
         render json: {
           success: false,
           error: e.message,
@@ -230,15 +270,28 @@ module Api
       #
       def generar_xml
         @archivos_temporales = []
-        
-        # Validaciones
+
         errores = validar_params_preparar
-        return render json: { success: false, errors: errores }, status: :unprocessable_entity if errores.any?
+        if errores.any?
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_GENERAR_XML,
+            mensaje: errores.join(', '),
+            metadata: { fase: 'validacion' }
+          )
+          return render json: { success: false, errors: errores }, status: :unprocessable_entity
+        end
 
         empresa = Empresa.includes(:acteco_empresas, actecos: []).find_by(id: params[:empresa_id])
-        return render json: { success: false, error: 'Empresa no encontrada' }, status: :not_found unless empresa
+        unless empresa
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_GENERAR_XML,
+            mensaje: 'Empresa no encontrada',
+            metadata: { fase: 'empresa', empresa_id: params[:empresa_id] }
+          )
+          return render json: { success: false, error: 'Empresa no encontrada' }, status: :not_found
+        end
 
-        # Etapas 1-4 (mismo flujo que preparar)
+        @empresa_auditoria_dte = empresa
         items_array = preparar_items(params[:items])
 
         archivo_pdf = Rails.root.join('tmp', "dte_#{empresa.id}_#{Time.current.to_i}.pdf")
@@ -256,6 +309,13 @@ module Api
         )
 
         unless resultado_folios[:disponibles]
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_GENERAR_XML,
+            empresa: empresa,
+            mensaje: resultado_folios[:error],
+            metadata: metadata_dte_emision(empresa: empresa, fase: 'asignacion_folios'),
+            codigo_error: 'asignacion_folios'
+          )
           return render json: {
             success: false,
             error: resultado_folios[:error],
@@ -286,6 +346,17 @@ module Api
         @archivos_temporales << resultado_xml[:archivo] if resultado_xml[:archivo]
 
         unless resultado_xml[:exitoso]
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_GENERAR_XML,
+            empresa: empresa,
+            mensaje: resultado_xml[:error],
+            metadata: metadata_dte_emision(
+              empresa: empresa,
+              folios: resultado_folios[:folios_usados],
+              fase: 'generacion_xml'
+            ),
+            codigo_error: 'generacion_xml'
+          )
           return render json: {
             success: false,
             error: resultado_xml[:error],
@@ -295,6 +366,19 @@ module Api
 
         # Limpiar archivos antiguos (más de 60 minutos)
         limpiar_archivos_temporales_antiguos(60)
+
+        auditar_dte(
+          accion: Auditoria::Acciones::DTE_GENERAR_XML,
+          empresa: empresa,
+          recurso_label: etiqueta_recurso_dte(folios: resultado_folios[:folios_usados]),
+          metadata: metadata_dte_emision(
+            empresa: empresa,
+            folios: resultado_folios[:folios_usados],
+            total_items: items_array.count,
+            total_paginas: resultado_folios[:paginas].count,
+            total_documentos: resultado_xml[:total_documentos]
+          )
+        )
 
         render json: {
           success: true,
@@ -313,6 +397,12 @@ module Api
         }, status: :ok
 
       rescue StandardError => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_GENERAR_XML,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'excepcion' }
+        )
         render json: {
           success: false,
           error: e.message,
@@ -329,14 +419,28 @@ module Api
       #
       def firmar_xml
         @archivos_temporales = []
+        @accion_auditoria_dte = Auditoria::Acciones::DTE_FIRMAR
 
         resultado = emitir_dte_firmado
         return render_resultado_emision(resultado) unless resultado[:success]
+
+        auditar_dte(
+          accion: Auditoria::Acciones::DTE_FIRMAR,
+          empresa: resultado[:empresa],
+          recurso_label: etiqueta_recurso_dte(folios: resultado[:resultado_folios][:folios_usados]),
+          metadata: metadata_dte_emision_completa(resultado)
+        )
 
         limpiar_archivos_temporales_antiguos(60)
 
         render json: respuesta_firmar_xml(resultado), status: :ok
       rescue StandardError => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_FIRMAR,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'excepcion' }
+        )
         render json: error_emision_json(e), status: :internal_server_error
       ensure
         limpiar_archivos_temporales(@archivos_temporales) if @archivos_temporales&.any?
@@ -351,9 +455,17 @@ module Api
       #
       def generar
         @archivos_temporales = []
+        @accion_auditoria_dte = Auditoria::Acciones::DTE_EMITIR
 
         errores = validar_params_preparar
-        return render json: { success: false, errors: errores }, status: :unprocessable_entity if errores.any?
+        if errores.any?
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_EMITIR,
+            mensaje: errores.join(', '),
+            metadata: { fase: 'validacion' }
+          )
+          return render json: { success: false, errors: errores }, status: :unprocessable_entity
+        end
 
         authorize_empresa!(params[:empresa_id])
         return if performed?
@@ -393,6 +505,13 @@ module Api
         end
 
         if error_post_firma.present?
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_EMITIR,
+            empresa: resultado[:empresa],
+            mensaje: error_post_firma,
+            metadata: metadata_dte_emision_completa(resultado).merge(fase: 'persistencia_documento'),
+            codigo_error: 'persistencia_documento'
+          )
           return render json: {
             success: false,
             error: error_post_firma,
@@ -405,8 +524,22 @@ module Api
 
         limpiar_archivos_temporales_antiguos(60)
 
+        doc_ids = resultado_persistencia[:documentos].map(&:id)
+        auditar_dte(
+          accion: Auditoria::Acciones::DTE_EMITIR,
+          empresa: resultado[:empresa],
+          recurso: { tipo: 'DocumentoEmitido', id: doc_ids.first, label: etiqueta_recurso_dte(folios: resultado[:resultado_folios][:folios_usados]) },
+          metadata: metadata_dte_emision_completa(resultado, resultado_persistencia: resultado_persistencia, resultado_envio: resultado_envio)
+        )
+
         render json: respuesta_generar(resultado, resultado_persistencia, resultado_envio), status: :ok
       rescue StandardError => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_EMITIR,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'excepcion' }
+        )
         render json: error_emision_json(e), status: :internal_server_error
       ensure
         limpiar_archivos_temporales(@archivos_temporales) if @archivos_temporales&.any?
@@ -422,7 +555,11 @@ module Api
         return fallo_emision(nil, fase: 'validacion', status: :unprocessable_entity, errors: errores) if errores.any?
 
         empresa = Empresa.includes(:acteco_empresas, actecos: []).find_by(id: params[:empresa_id])
-        return fallo_emision('Empresa no encontrada', fase: 'empresa', status: :not_found) unless empresa
+        unless empresa
+          return fallo_emision('Empresa no encontrada', fase: 'empresa', status: :not_found)
+        end
+
+        @empresa_auditoria_dte = empresa
 
         resolucion_certificado = resolver_certificado_firma(empresa)
         unless resolucion_certificado.success?
@@ -518,6 +655,17 @@ module Api
       end
 
       def fallo_emision(error, fase:, status:, errors: nil)
+        accion = @accion_auditoria_dte || Auditoria::Acciones::DTE_EMITIR
+        mensaje = error || errors&.join(', ')
+
+        auditar_dte_fallo(
+          accion: accion,
+          empresa: empresa_auditoria_dte,
+          mensaje: mensaje,
+          metadata: metadata_dte_emision(empresa: empresa_auditoria_dte, fase: fase),
+          codigo_error: fase
+        )
+
         { success: false, error: error, errors: errors, fase: fase, http_status: status }
       end
 

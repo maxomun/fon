@@ -9,6 +9,10 @@ module Users
       return if user.tiene_rol?(User::ROL_ADMINISTRADOR_FON)
 
       user.user_roles.create!(rol: rol)
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_ROL_FON_ASIGNAR,
+        user: user
+      )
     end
 
     def quitar!(user)
@@ -16,6 +20,10 @@ module Users
       raise StandardError, 'No puede quitar el rol al último administrador FON activo' if ultimo_administrador_fon_activo?(except_user: user)
 
       user.user_roles.where(rol_id: rol_administrador_fon.id).destroy_all
+      Auditoria::RegistrarUsuario.call(
+        accion: Auditoria::Acciones::USUARIO_ROL_FON_QUITAR,
+        user: user
+      )
     end
 
     def sincronizar!(user, asignar:)

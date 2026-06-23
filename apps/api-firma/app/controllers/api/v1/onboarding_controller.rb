@@ -10,6 +10,11 @@ module Api
         resultado = ::Onboarding::VerificarEmail.call(token: verificar_email_params[:token])
 
         if resultado.success?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_ONBOARDING_VERIFICAR_EMAIL,
+            actor: resultado.user,
+            recurso: resultado.user
+          )
           render_success(
             data: {
               setup_token: resultado.setup_token,
@@ -20,6 +25,14 @@ module Api
             message: 'Correo verificado exitosamente'
           )
         else
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_ONBOARDING_VERIFICAR_EMAIL,
+            actor: resultado.user,
+            recurso: resultado.user,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'ONBOARDING_TOKEN_INVALID',
+            mensaje: resultado.errors.first
+          )
           render_error(
             'No se pudo verificar el correo',
             :unprocessable_entity,
@@ -39,11 +52,24 @@ module Api
         )
 
         if resultado.success?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_ONBOARDING_ESTABLECER_PASSWORD,
+            actor: resultado.user,
+            recurso: resultado.user
+          )
           render_success(
             data: onboarding_status_payload(resultado.user),
             message: 'Contraseña establecida exitosamente. Ya puede iniciar sesión.'
           )
         else
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_ONBOARDING_ESTABLECER_PASSWORD,
+            actor: resultado.user,
+            recurso: resultado.user,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'ONBOARDING_PASSWORD_INVALID',
+            mensaje: resultado.errors.first
+          )
           Rails.logger.warn(
             "[onboarding] establecer-password falló: #{resultado.errors.join(', ')}"
           )
@@ -60,6 +86,14 @@ module Api
       def reenviar_verificacion
         resultado = ::Onboarding::ReenviarVerificacion.call(
           email: reenviar_verificacion_params[:email]
+        )
+
+        audit_auth_event(
+          Auditoria::Acciones::AUTH_ONBOARDING_REENVIAR_VERIFICACION,
+          metadata: {
+            email: reenviar_verificacion_params[:email].to_s.strip.downcase.presence
+          },
+          mensaje: resultado.message
         )
 
         render_success(message: resultado.message)

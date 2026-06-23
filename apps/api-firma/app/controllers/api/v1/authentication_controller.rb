@@ -4,6 +4,7 @@ module Api
   module V1
     class AuthenticationController < ApplicationController
       include OnboardingSessionBlockable
+      include AuditableAuth
 
       # No requiere autenticación para login
       skip_before_action :verify_authenticity_token, raise: false
@@ -16,20 +17,50 @@ module Api
 
         if user&.authenticate(login_params[:password])
           unless user.activo?
+            audit_auth_event(
+              Auditoria::Acciones::AUTH_LOGIN_BLOQUEADO,
+              actor: user,
+              recurso: user,
+              resultado: AuditEvent::RESULTADO_FALLO,
+              codigo_error: 'USER_INACTIVE',
+              mensaje: 'Usuario inactivo'
+            )
             return render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
           end
 
           bloqueo = Users::VerificarAccesoSesion.call(user)
           if bloqueo
+            audit_auth_event(
+              Auditoria::Acciones::AUTH_LOGIN_BLOQUEADO,
+              actor: user,
+              recurso: user,
+              resultado: AuditEvent::RESULTADO_FALLO,
+              metadata: { bloqueo: bloqueo.code },
+              codigo_error: bloqueo.code,
+              mensaje: bloqueo.message
+            )
             return render_onboarding_blocked(bloqueo, user: user)
           end
 
           tokens = generate_tokens(user)
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_LOGIN_EXITOSO,
+            actor: user,
+            recurso: user,
+            metadata: login_identificador_metadata
+          )
           render_success(
             tokens.merge(user: user_payload(user)),
             message: 'Inicio de sesión exitoso'
           )
         else
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_LOGIN_FALLIDO,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            metadata: login_identificador_metadata,
+            codigo_error: 'INVALID_CREDENTIALS',
+            mensaje: 'Credenciales inválidas'
+          )
           render_error('Credenciales inválidas', :unauthorized, code: 'INVALID_CREDENTIALS')
         end
       end
@@ -39,30 +70,65 @@ module Api
         refresh_token_string = params[:refresh_token]
 
         if refresh_token_string.blank?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_REFRESH_TOKEN_INVALIDO,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'REFRESH_TOKEN_REQUIRED',
+            mensaje: 'Refresh token requerido'
+          )
           return render_error('Refresh token requerido', :bad_request, code: 'REFRESH_TOKEN_REQUIRED')
         end
 
         refresh_token = RefreshToken.active.find_by(token: refresh_token_string)
 
         if refresh_token.nil?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_REFRESH_TOKEN_INVALIDO,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'INVALID_REFRESH_TOKEN',
+            mensaje: 'Refresh token inválido o expirado'
+          )
           return render_error('Refresh token inválido o expirado', :unauthorized, code: 'INVALID_REFRESH_TOKEN')
         end
 
         user = user_scope.find(refresh_token.user_id)
 
         unless user.activo?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_LOGIN_BLOQUEADO,
+            actor: user,
+            recurso: user,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'USER_INACTIVE',
+            mensaje: 'Usuario inactivo'
+          )
           return render_error('Usuario inactivo', :unauthorized, code: 'USER_INACTIVE')
         end
 
         bloqueo = Users::VerificarAccesoSesion.call(user)
         if bloqueo
           refresh_token.revoke!
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_LOGIN_BLOQUEADO,
+            actor: user,
+            recurso: user,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            metadata: { bloqueo: bloqueo.code, origen: 'refresh' },
+            codigo_error: bloqueo.code,
+            mensaje: bloqueo.message
+          )
           return render_onboarding_blocked(bloqueo, user: user)
         end
 
         refresh_token.revoke!
 
         tokens = generate_tokens(user)
+
+        audit_auth_event(
+          Auditoria::Acciones::AUTH_REFRESH_TOKEN,
+          actor: user,
+          recurso: user
+        )
 
         render_success(
           tokens.merge(user: user_payload(user)),
@@ -78,6 +144,12 @@ module Api
           JsonWebToken.blacklist!(token)
           RefreshToken.revoke_all_for_user!(current_user.id)
         end
+
+        audit_auth_event(
+          Auditoria::Acciones::AUTH_LOGOUT,
+          actor: current_user,
+          recurso: current_user
+        )
 
         render_success(message: 'Sesión cerrada exitosamente')
       end
@@ -110,6 +182,16 @@ module Api
         end
       end
 
+      def login_identificador_metadata
+        if login_params[:email].present?
+          { identificador: login_params[:email].to_s.strip.downcase, tipo: 'email' }
+        elsif login_params[:username].present?
+          { identificador: login_params[:username].to_s.strip, tipo: 'username' }
+        else
+          { identificador: nil, tipo: nil }
+        end
+      end
+
       def generate_tokens(user)
         payload = Users::ProfilePayload.token_claims(user)
 
@@ -138,6 +220,7 @@ module Api
 
       def authenticate_request!
         @current_user = authenticate_token
+        Auditoria::Contexto.actor = @current_user
       rescue JsonWebToken::TokenExpiredError
         render_error('Token expirado', :unauthorized, code: 'TOKEN_EXPIRED')
       rescue JsonWebToken::TokenInvalidError => e

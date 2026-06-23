@@ -5,6 +5,7 @@ module Api
     class EmpresaActecosController < BaseController
       include ActecoSerializable
       include EmpresaAuthorizable
+      include EmpresaConfigAuditable
 
       before_action :require_admin_empresa!
       before_action :set_empresa
@@ -21,20 +22,42 @@ module Api
         assignment = @empresa.acteco_empresas.build(acteco: acteco)
 
         if assignment.save
+          auditar_evento_empresa(
+            accion: Auditoria::Acciones::EMPRESA_ACTECO_ASIGNAR,
+            recurso: acteco,
+            empresa: @empresa,
+            metadata: { acteco_id: acteco.id, codigo: acteco.codigo, nombre: acteco.nombre }
+          )
           render_success(
             data: acteco_payload(acteco),
             status: :created,
             message: 'Actividad económica asignada exitosamente'
           )
         else
+          auditar_evento_empresa_fallo(
+            accion: Auditoria::Acciones::EMPRESA_ACTECO_ASIGNAR,
+            recurso: acteco,
+            empresa: @empresa,
+            mensaje: assignment.errors.full_messages.join(', '),
+            metadata: { acteco_id: acteco.id }
+          )
           render_validation_error(assignment)
         end
       end
 
       # DELETE /api/v1/empresas/:empresa_id/actecos/:id
       def destroy
+        acteco = Acteco.find(params[:id])
         assignment = @empresa.acteco_empresas.find_by!(acteco_id: params[:id])
         assignment.destroy!
+
+        auditar_evento_empresa(
+          accion: Auditoria::Acciones::EMPRESA_ACTECO_QUITAR,
+          recurso: acteco,
+          empresa: @empresa,
+          metadata: { acteco_id: acteco.id, codigo: acteco.codigo, nombre: acteco.nombre }
+        )
+
         render_success(message: 'Actividad económica quitada exitosamente')
       end
 

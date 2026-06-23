@@ -4,6 +4,7 @@ module Api
   module V1
     class EmpresasController < BaseController
       include EmpresaAuthorizable
+      include EmpresaConfigAuditable
 
       before_action :require_empresas_visibility!, only: [:index]
       before_action :authorize_empresa_show!, only: [:show]
@@ -30,12 +31,25 @@ module Api
         empresa = Empresa.new(empresa_params)
 
         if empresa.save
+          auditar_evento_empresa(
+            accion: Auditoria::Acciones::EMPRESA_CREAR,
+            recurso: empresa,
+            empresa: empresa,
+            metadata: { rut: empresa.rut, razon_social: empresa.razon_social }
+          )
           render_success(
             data: empresa_payload(Empresa.includes(:pais).find(empresa.id), es_administrador: true),
             status: :created,
             message: 'Empresa creada exitosamente'
           )
         else
+          auditar_evento_empresa_fallo(
+            accion: Auditoria::Acciones::EMPRESA_CREAR,
+            recurso: empresa,
+            empresa: nil,
+            mensaje: empresa.errors.full_messages.join(', '),
+            metadata: { rut: empresa.rut }
+          )
           render_validation_error(empresa)
         end
       end
@@ -43,20 +57,49 @@ module Api
       # PATCH/PUT /api/v1/empresas/:id
       def update
         if @empresa.update(empresa_params)
+          auditar_evento_empresa(
+            accion: Auditoria::Acciones::EMPRESA_ACTUALIZAR,
+            recurso: @empresa,
+            empresa: @empresa,
+            cambios: Auditoria::Cambios.desde_modelo(@empresa)
+          )
           render_success(
             data: empresa_payload(@empresa, es_administrador: es_administrador_de?(@empresa)),
             message: 'Empresa actualizada exitosamente'
           )
         else
+          auditar_evento_empresa_fallo(
+            accion: Auditoria::Acciones::EMPRESA_ACTUALIZAR,
+            recurso: @empresa,
+            empresa: @empresa,
+            mensaje: @empresa.errors.full_messages.join(', ')
+          )
           render_validation_error(@empresa)
         end
       end
 
       # DELETE /api/v1/empresas/:id
       def destroy
+        snapshot = {
+          rut: @empresa.rut,
+          razon_social: @empresa.razon_social
+        }
+
         if @empresa.destroy
+          auditar_evento_empresa(
+            accion: Auditoria::Acciones::EMPRESA_ELIMINAR,
+            recurso: { tipo: 'Empresa', id: params[:id], label: snapshot[:razon_social] },
+            empresa: nil,
+            metadata: snapshot
+          )
           render_success(message: 'Empresa eliminada exitosamente')
         else
+          auditar_evento_empresa_fallo(
+            accion: Auditoria::Acciones::EMPRESA_ELIMINAR,
+            recurso: @empresa,
+            empresa: @empresa,
+            mensaje: @empresa.errors.full_messages.join(', ')
+          )
           render_error(
             'No se puede eliminar la empresa porque tiene registros asociados',
             :unprocessable_entity,

@@ -26,7 +26,9 @@ module PersonasAutorizadas
       if user.nil?
         resultado_usuario = ProvisionarUsuario.call(persona_autorizada: @persona_autorizada)
         unless resultado_usuario.success?
-          return Result.new(enviado: false, paso: nil, errors: resultado_usuario.errors)
+          return auditar_fallo(
+            Result.new(enviado: false, paso: nil, errors: resultado_usuario.errors)
+          )
         end
 
         user = resultado_usuario.user
@@ -34,23 +36,49 @@ module PersonasAutorizadas
       end
 
       if user.onboarding_completado?
-        return Result.new(
-          enviado: false,
-          paso: nil,
-          errors: ['El enrolamiento de esta persona ya está completo']
+        return auditar_fallo(
+          Result.new(
+            enviado: false,
+            paso: nil,
+            errors: ['El enrolamiento de esta persona ya está completo']
+          )
         )
       end
 
       if user.requiere_verificacion_email?
         envio = EnviarVerificacionEmail.call(user: user)
-        return build_result(envio, PASO_VERIFICACION)
+        return auditar_resultado(build_result(envio, PASO_VERIFICACION))
       end
 
       envio = EnviarEstablecerPasswordEmail.call(user: user)
-      build_result(envio, PASO_PASSWORD)
+      auditar_resultado(build_result(envio, PASO_PASSWORD))
     end
 
     private
+
+    def auditar_resultado(resultado)
+      if resultado.success?
+        Auditoria::RegistrarPersona.call(
+          accion: Auditoria::Acciones::PERSONA_REENVIAR_ONBOARDING,
+          persona: @persona_autorizada,
+          metadata: { paso: resultado.paso, enviado: resultado.enviado }
+        )
+      else
+        auditar_fallo(resultado)
+      end
+      resultado
+    end
+
+    def auditar_fallo(resultado)
+      Auditoria::RegistrarPersona.call(
+        accion: Auditoria::Acciones::PERSONA_REENVIAR_ONBOARDING,
+        persona: @persona_autorizada,
+        resultado: AuditEvent::RESULTADO_FALLO,
+        mensaje: resultado.errors.join(', '),
+        metadata: { paso: resultado.paso }
+      )
+      resultado
+    end
 
     def build_result(envio, paso)
       if envio.success? || envio.enviado

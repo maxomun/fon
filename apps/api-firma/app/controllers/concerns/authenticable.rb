@@ -3,6 +3,7 @@
 module Authenticable
   extend ActiveSupport::Concern
   include OnboardingSessionBlockable
+  include AuditableAuth
 
   included do
     before_action :authenticate_request!
@@ -13,6 +14,7 @@ module Authenticable
 
   def authenticate_request!
     @current_user = authenticate_token
+    Auditoria::Contexto.actor = @current_user
   rescue JsonWebToken::TokenExpiredError
     render_error('Token expirado', :unauthorized, code: 'TOKEN_EXPIRED')
   rescue JsonWebToken::TokenInvalidError => e
@@ -79,20 +81,23 @@ module Authenticable
   def authorize_role!(*allowed_roles)
     return if current_user.roles.exists?(codigo: allowed_roles)
 
+    audit_acceso_denegado!(codigo: 'FORBIDDEN', mensaje: 'No tiene permisos para realizar esta acción')
     render_error('No tiene permisos para realizar esta acción', :forbidden, code: 'FORBIDDEN')
   end
 
   # Verificar si es administrador
   def authorize_admin!
-    unless current_user.admin?
-      render_error('Se requieren permisos de administrador', :forbidden, code: 'ADMIN_REQUIRED')
-    end
+    return if current_user.admin?
+
+    audit_acceso_denegado!(codigo: 'ADMIN_REQUIRED', mensaje: 'Se requieren permisos de administrador')
+    render_error('Se requieren permisos de administrador', :forbidden, code: 'ADMIN_REQUIRED')
   end
 
   # Verificar que el usuario tenga acceso a la empresa (vinculado o administrador FON).
   def authorize_empresa!(empresa_id)
     return if current_user.vinculado_a_empresa?(empresa_id)
 
+    audit_acceso_denegado!(codigo: 'EMPRESA_FORBIDDEN', mensaje: 'No tiene acceso a esta empresa')
     render_error('No tiene acceso a esta empresa', :forbidden, code: 'EMPRESA_FORBIDDEN')
   end
 
@@ -100,6 +105,10 @@ module Authenticable
   def authorize_admin_empresa!(empresa_id)
     return if current_user.administrador_en_empresa?(empresa_id)
 
+    audit_acceso_denegado!(
+      codigo: 'EMPRESA_ADMIN_FORBIDDEN',
+      mensaje: 'No tiene permisos para administrar esta empresa'
+    )
     render_error('No tiene permisos para administrar esta empresa', :forbidden, code: 'EMPRESA_ADMIN_FORBIDDEN')
   end
 end

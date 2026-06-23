@@ -264,6 +264,11 @@ export function EmpresasPage() {
                           onPersonasAutorizadas={(item) =>
                             navigate(`/empresas/${item.id}/personas-autorizadas`)
                           }
+                          onAuditoria={
+                            isFonAdmin || empresa.es_administrador
+                              ? (item) => navigate(`/empresas/${item.id}/auditoria`)
+                              : undefined
+                          }
                           onCertificados={
                             isFonAdmin
                               ? (item) => navigate(`/empresas/${item.id}/certificados`)

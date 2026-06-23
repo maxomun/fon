@@ -4,6 +4,7 @@ module Api
   module V1
     class EmpresaPersonasAutorizadasController < BaseController
       include PersonaAutorizadaSerializable
+      include PersonaAutorizadaAuditable
       include EmpresaAuthorizable
 
       before_action :require_admin_empresa!
@@ -58,6 +59,7 @@ module Api
       def update
         persona = @asignacion.persona_autorizada
         @onboarding_email_enviado = false
+        admin_antes = @asignacion.es_administrador_empresa
 
         PersonaAutorizada.transaction do
           if persona_detail_params.present?
@@ -89,11 +91,40 @@ module Api
         end
 
         if persona.errors.any?
+          auditar_persona_actualizar_fallo(
+            persona: persona,
+            empresa: @empresa,
+            mensaje: persona.errors.full_messages.join(', ')
+          )
           return render_persona_validation_error(persona)
         end
 
         if @asignacion.errors.any?
+          auditar_persona_actualizar_fallo(
+            persona: persona,
+            empresa: @empresa,
+            mensaje: @asignacion.errors.full_messages.join(', ')
+          )
           return render_persona_validation_error(@asignacion)
+        end
+
+        if persona_detail_params.present?
+          persona_cambios = Auditoria::Cambios.desde_modelo(persona)
+          auditar_persona_actualizar(
+            persona: persona,
+            empresa: @empresa,
+            onboarding_email_enviado: @onboarding_email_enviado,
+            cambios: persona_cambios
+          )
+        end
+
+        if asignacion_params.key?(:es_administrador_empresa)
+          auditar_persona_admin_empresa(
+            persona: persona,
+            empresa: @empresa,
+            valor_anterior: admin_antes,
+            valor_nuevo: @asignacion.reload.es_administrador_empresa
+          )
         end
 
         render_success(
@@ -131,7 +162,9 @@ module Api
 
       # DELETE /api/v1/empresas/:empresa_id/personas_autorizadas/:id
       def destroy
+        persona = @asignacion.persona_autorizada
         @asignacion.destroy!
+        auditar_persona_quitar_empresa(persona: persona, empresa: @empresa)
         render_success(message: 'Persona autorizada quitada de la empresa exitosamente')
       end
 
@@ -208,6 +241,13 @@ module Api
             envio = PersonasAutorizadas::EnviarVerificacionEmail.call(user: persona.user)
             onboarding_email_enviado = envio.enviado
           end
+
+          auditar_persona_asignar_empresa(
+            persona: persona,
+            empresa: @empresa,
+            es_administrador_empresa: asignacion.es_administrador_empresa,
+            origen: 'asignar_existente'
+          )
 
           render_success(
             data: persona_autorizada_asignada_payload(persona, asignacion: asignacion),

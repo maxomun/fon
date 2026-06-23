@@ -89,6 +89,34 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
+  create_table "audit_events", comment: "Registro append-only de acciones críticas para auditoría.", force: :cascade do |t|
+    t.string "accion", limit: 100, null: false, comment: "Código de acción, ej. auth.login_exitoso"
+    t.string "categoria", limit: 50, null: false, comment: "Dominio: auth, usuarios, personas, empresa, certificados, folios, dte, catalogo"
+    t.string "resultado", limit: 20, null: false, comment: "success | failure"
+    t.integer "actor_user_id"
+    t.string "actor_email", limit: 200
+    t.string "actor_nombre", limit: 300
+    t.boolean "actor_acceso_global"
+    t.integer "empresa_id", comment: "Scope tenant; NULL para eventos de plataforma"
+    t.string "recurso_tipo", limit: 100
+    t.string "recurso_id", limit: 100
+    t.string "recurso_label", limit: 300
+    t.jsonb "cambios", default: {}, null: false, comment: "Diff JSON de campos relevantes (sin secretos)"
+    t.jsonb "metadata", default: {}, null: false, comment: "Contexto adicional no sensible"
+    t.string "codigo_error", limit: 100
+    t.string "mensaje", limit: 500
+    t.string "ip", limit: 45
+    t.string "user_agent", limit: 500
+    t.string "request_id", limit: 100
+    t.datetime "created_at", precision: nil, default: -> { "now()" }, null: false
+    t.index ["accion", "created_at"], name: "idx_audit_events_accion_created_at", order: { created_at: :desc }
+    t.index ["actor_user_id", "created_at"], name: "idx_audit_events_actor_created_at", order: { created_at: :desc }, where: "(actor_user_id IS NOT NULL)"
+    t.index ["created_at"], name: "idx_audit_events_created_at", order: :desc
+    t.index ["empresa_id", "created_at"], name: "idx_audit_events_empresa_created_at", order: { created_at: :desc }, where: "(empresa_id IS NOT NULL)"
+    t.index ["recurso_tipo", "recurso_id"], name: "idx_audit_events_recurso"
+    t.check_constraint "resultado::text = ANY (ARRAY['success'::character varying, 'failure'::character varying]::text[])", name: "chk_audit_events_resultado"
+  end
+
   create_table "certificados", id: :serial, force: :cascade do |t|
     t.datetime "fecha_adjuncion", precision: nil
     t.boolean "vigente", null: false
@@ -225,7 +253,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.index ["expires_at"], name: "idx_onboarding_tokens_expires_at"
     t.index ["token_digest"], name: "uq_onboarding_tokens_token_digest", unique: true
     t.index ["user_id", "proposito"], name: "idx_onboarding_tokens_user_proposito_activo", where: "(used_at IS NULL)"
-    t.check_constraint "proposito::text = ANY (ARRAY['verificar_email'::character varying, 'establecer_password'::character varying, 'restablecer_password'::character varying]::text[])", name: "chk_onboarding_tokens_proposito"
+    t.check_constraint "proposito::text = ANY (ARRAY['verificar_email'::character varying::text, 'establecer_password'::character varying::text, 'restablecer_password'::character varying::text])", name: "chk_onboarding_tokens_proposito"
   end
 
   create_table "paises", id: :serial, comment: "Catálogo de países soportados por la plataforma.", force: :cascade do |t|
@@ -388,6 +416,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "acteco_empresas", "actecos", name: "fk_acteco_empresas_actecos"
   add_foreign_key "actecos", "grupo_actecos", name: "fk_actecos_grupo_actecos"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "audit_events", "empresas", name: "fk_audit_events_empresa", on_delete: :nullify
+  add_foreign_key "audit_events", "users", column: "actor_user_id", name: "fk_audit_events_actor_user", on_delete: :nullify
   add_foreign_key "certificados", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_certificados_personas_autorizadas"
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"

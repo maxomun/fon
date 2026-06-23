@@ -18,6 +18,9 @@ import { EmpresaTiposDocumentosPage } from '@/features/empresas/components/Empre
 import { EmpresaRangosFoliosPage } from '@/features/empresas/components/EmpresaRangosFoliosPage'
 import { ImpuestosPage } from '@/features/impuestos/components/ImpuestosPage'
 import { UsuariosPage } from '@/features/usuarios/components/UsuariosPage'
+import { AuditoriaPage } from '@/features/auditoria/components/AuditoriaPage'
+import { EmpresaAuditoriaPage } from '@/features/auditoria/components/EmpresaAuditoriaPage'
+import { EmpresaAdminProtectedRoute } from '@/features/auth/components/EmpresaAdminProtectedRoute'
 
 function HomeRedirect() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -117,6 +120,16 @@ export function AppRouter() {
         }
       />
       <Route
+        path="/empresas/:id/auditoria"
+        element={
+          <ProtectedRoute>
+            <EmpresaAdminProtectedRoute>
+              <EmpresaAuditoriaPage />
+            </EmpresaAdminProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/impuestos"
         element={
           <ProtectedRoute>
@@ -132,6 +145,16 @@ export function AppRouter() {
           <ProtectedRoute>
             <RoleProtectedRoute>
               <UsuariosPage />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/auditoria"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute>
+              <AuditoriaPage />
             </RoleProtectedRoute>
           </ProtectedRoute>
         }

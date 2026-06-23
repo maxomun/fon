@@ -4,6 +4,7 @@ module Api
   module V1
     class PersonasAutorizadasController < BaseController
       include PersonaAutorizadaSerializable
+      include PersonaAutorizadaAuditable
       include EmpresaAuthorizable
 
       before_action :require_administrador_fon!
@@ -72,6 +73,11 @@ module Api
           asegurar_usuario_vinculado!
           return if performed?
 
+          auditar_persona_actualizar(
+            persona: @persona_autorizada,
+            onboarding_email_enviado: @onboarding_email_enviado
+          )
+
           render_success(
             data: persona_autorizada_payload(@persona_autorizada, include_empresas: true),
             message: mensaje_onboarding(
@@ -80,6 +86,10 @@ module Api
             )
           )
         else
+          auditar_persona_actualizar_fallo(
+            persona: @persona_autorizada,
+            mensaje: @persona_autorizada.errors.full_messages.join(', ')
+          )
           render_persona_validation_error(@persona_autorizada)
         end
       end
@@ -108,6 +118,10 @@ module Api
       # DELETE /api/v1/personas_autorizadas/:id
       def destroy
         unless @persona_autorizada.puede_eliminarse?
+          auditar_persona_eliminar_fallo(
+            persona: @persona_autorizada,
+            mensaje: 'Tiene empresas o certificados asociados'
+          )
           return render_error(
             'No se puede eliminar la persona autorizada porque tiene empresas o certificados asociados',
             :unprocessable_entity,
@@ -116,8 +130,13 @@ module Api
         end
 
         if @persona_autorizada.destroy
+          auditar_persona_eliminar(persona: @persona_autorizada)
           render_success(message: 'Persona autorizada eliminada exitosamente')
         else
+          auditar_persona_eliminar_fallo(
+            persona: @persona_autorizada,
+            mensaje: @persona_autorizada.errors.full_messages.join(', ')
+          )
           render_error(
             'No se puede eliminar la persona autorizada',
             :unprocessable_entity,

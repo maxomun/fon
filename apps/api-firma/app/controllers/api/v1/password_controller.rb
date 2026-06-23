@@ -12,6 +12,18 @@ module Api
           email: solicitar_params[:email]
         )
 
+        audit_auth_event(
+          Auditoria::Acciones::AUTH_PASSWORD_SOLICITAR,
+          resultado: password_solicitar_resultado(resultado),
+          metadata: {
+            email: solicitar_params[:email].to_s.strip.downcase.presence,
+            enviado: resultado.enviado,
+            codigo: resultado.code
+          },
+          codigo_error: resultado.code,
+          mensaje: resultado.message
+        )
+
         render_success(
           message: resultado.message,
           code: resultado.code,
@@ -29,8 +41,21 @@ module Api
         )
 
         if resultado.success?
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_PASSWORD_RESTABLECER,
+            actor: resultado.user,
+            recurso: resultado.user
+          )
           render_success(message: 'Contraseña restablecida exitosamente. Ya puede iniciar sesión.')
         else
+          audit_auth_event(
+            Auditoria::Acciones::AUTH_PASSWORD_RESTABLECER,
+            actor: resultado.user,
+            recurso: resultado.user,
+            resultado: AuditEvent::RESULTADO_FALLO,
+            codigo_error: 'PASSWORD_RESET_INVALID',
+            mensaje: resultado.errors.first
+          )
           render_error(
             resultado.errors.first || 'No se pudo restablecer la contraseña',
             :unprocessable_entity,
@@ -53,6 +78,13 @@ module Api
       def password_params
         nested = params[:password]
         nested.is_a?(ActionController::Parameters) ? nested : params
+      end
+
+      def password_solicitar_resultado(resultado)
+        return AuditEvent::RESULTADO_EXITO if resultado.enviado
+        return AuditEvent::RESULTADO_FALLO if resultado.code.present?
+
+        AuditEvent::RESULTADO_EXITO
       end
     end
   end

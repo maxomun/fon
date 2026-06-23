@@ -55,6 +55,8 @@ Rails.application.routes.draw do
       end
 
       resources :empresas, only: [:index, :show, :create, :update, :destroy] do
+        get 'auditoria', to: 'empresa_auditoria#index'
+        get 'auditoria/:id', to: 'empresa_auditoria#show', as: :auditoria_evento
         resources :actecos, only: [:index, :create, :destroy], controller: 'empresa_actecos'
         resources :personas_autorizadas,
                   only: [:index, :create, :update, :destroy],
@@ -98,6 +100,9 @@ Rails.application.routes.draw do
                   controller: 'impuesto_valores',
                   only: [:index, :create, :update, :destroy]
       end
+
+      get 'auditoria', to: 'auditoria#index'
+      get 'auditoria/:id', to: 'auditoria#show'
 
       # Aquí irán los recursos de la API
       # resources :clientes

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Building2, LayoutDashboard, Receipt, Users } from 'lucide-react'
+import { Building2, LayoutDashboard, Receipt, ScrollText, Users } from 'lucide-react'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { canAccessEmpresasModule, isAdministradorFon } from '@/features/auth/utils/roles'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/empresas', label: 'Empresas', icon: Building2, visible: canAccessEmpresasModule },
   { to: '/impuestos', label: 'Impuestos', icon: Receipt, visible: isAdministradorFon },
   { to: '/usuarios', label: 'Usuarios', icon: Users, visible: isAdministradorFon },
+  { to: '/auditoria', label: 'Auditoría', icon: ScrollText, visible: isAdministradorFon },
 ] as const
 
 export function Sidebar() {

@@ -62,6 +62,20 @@ module PersonasAutorizadas
         asignacion: asignacion,
         errors: [],
         onboarding_email_enviado: resultado_crear.onboarding_email_enviado
+      ).tap { |resultado| auditar_asignacion(resultado) }
+    end
+
+    private
+
+    def auditar_asignacion(resultado)
+      Auditoria::RegistrarPersona.call(
+        accion: Auditoria::Acciones::PERSONA_ASIGNAR_EMPRESA,
+        persona: resultado.persona_autorizada,
+        empresa: @empresa,
+        metadata: {
+          es_administrador_empresa: @es_administrador_empresa,
+          origen: 'crear_y_asignar'
+        }
       )
     end
   end

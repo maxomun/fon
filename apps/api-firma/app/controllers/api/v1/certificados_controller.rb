@@ -3,6 +3,8 @@
 module Api
   module V1
     class CertificadosController < BaseController
+      include EmpresaConfigAuditable
+
       before_action :require_administrador_fon!
 
       # POST /api/v1/certificados/crear
@@ -14,6 +16,9 @@ module Api
       #   archivo_key: .key o .pem
       #   frase_clave: password de la clave privada
       def crear
+        persona = nil
+        empresa = nil
+
         return error_parametros('persona_autorizada_id es requerido') unless params[:persona_autorizada_id].present?
         return error_parametros('archivo_crs es requerido') unless params[:archivo_crs].present?
         return error_parametros('archivo_key es requerido') unless params[:archivo_key].present?
@@ -22,12 +27,14 @@ module Api
         persona = PersonaAutorizada.find_by(id: params[:persona_autorizada_id])
         return error_no_encontrado('Persona autorizada no encontrada') unless persona
 
+        empresa = nil
         if params[:empresa_id].present?
           empresa = Empresa.find_by(id: params[:empresa_id])
           return error_no_encontrado('Empresa no encontrada') unless empresa
           return error_validacion('La persona autorizada no está vinculada a esta empresa') unless persona_vinculada_a_empresa?(persona, empresa)
         end
 
+        certificados_reemplazados = persona.certificados.vigentes.pluck(:id)
         certificado = nil
 
         Certificado.transaction do
@@ -51,14 +58,48 @@ module Api
           end
         end
 
+        auditar_evento_certificado(
+          accion: Auditoria::Acciones::CERTIFICADO_CREAR,
+          recurso: certificado,
+          empresa: empresa,
+          metadata: metadata_certificado(certificado, persona)
+        )
+
+        if certificados_reemplazados.any?
+          auditar_evento_certificado(
+            accion: Auditoria::Acciones::CERTIFICADO_REEMPLAZAR,
+            recurso: certificado,
+            empresa: empresa,
+            metadata: metadata_certificado(certificado, persona).merge(
+              certificados_anteriores_ids: certificados_reemplazados
+            )
+          )
+        end
+
         render_success(
           data: certificado_payload(certificado),
           status: :created,
           message: 'Certificado creado exitosamente'
         )
       rescue ActiveRecord::RecordInvalid => e
+        auditar_evento_certificado(
+          accion: Auditoria::Acciones::CERTIFICADO_CREAR,
+          recurso: persona,
+          empresa: empresa,
+          resultado: AuditEvent::RESULTADO_FALLO,
+          mensaje: e.message,
+          metadata: { persona_autorizada_id: persona&.id }
+        )
         error_validacion(e.message)
       rescue StandardError => e
+        auditar_evento_certificado(
+          accion: Auditoria::Acciones::CERTIFICADO_CREAR,
+          recurso: persona,
+          empresa: empresa,
+          resultado: AuditEvent::RESULTADO_FALLO,
+          mensaje: e.message,
+          metadata: { persona_autorizada_id: persona&.id }
+        )
         error_interno("Error al crear certificado: #{e.message}")
       end
 
@@ -136,15 +177,34 @@ module Api
       # DELETE /api/v1/certificados/eliminar
       # Body/query: certificado_id
       def eliminar
+        certificado = nil
+        empresa = nil
+
         return error_parametros('certificado_id es requerido') unless params[:certificado_id].present?
 
         certificado = Certificado.find_by(id: params[:certificado_id])
         return error_no_encontrado('Certificado no encontrado') unless certificado
 
+        empresa = empresa_para_certificado(certificado)
         certificado.update!(vigente: false)
+
+        auditar_evento_certificado(
+          accion: Auditoria::Acciones::CERTIFICADO_ELIMINAR,
+          recurso: certificado,
+          empresa: empresa,
+          metadata: metadata_certificado(certificado, certificado.persona_autorizada),
+          cambios: { 'vigente' => [true, false] }
+        )
 
         render_success(message: 'Certificado desactivado exitosamente')
       rescue StandardError => e
+        auditar_evento_certificado(
+          accion: Auditoria::Acciones::CERTIFICADO_ELIMINAR,
+          recurso: certificado,
+          empresa: empresa,
+          resultado: AuditEvent::RESULTADO_FALLO,
+          mensaje: e.message
+        ) if certificado
         error_interno("Error al eliminar certificado: #{e.message}")
       end
 
@@ -152,6 +212,22 @@ module Api
 
       def require_administrador_fon!
         authorize_role!('administrador_fon')
+      end
+
+      def empresa_para_certificado(certificado)
+        return Empresa.find_by(id: params[:empresa_id]) if params[:empresa_id].present?
+
+        certificado.persona_autorizada.empresas.first
+      end
+
+      def metadata_certificado(certificado, persona)
+        {
+          persona_autorizada_id: persona.id,
+          persona_rut: persona.rut,
+          persona_nombre: persona.nombre_completo,
+          certificado_id: certificado.is_a?(Certificado) ? certificado.id : nil,
+          responsable: certificado.is_a?(Certificado) ? certificado.responsable : nil
+        }
       end
 
       def listar_por_empresa

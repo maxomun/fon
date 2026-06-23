@@ -42,24 +42,54 @@ module PersonasAutorizadas
       end
 
       if persona.persisted? && persona.user_id.present?
-        Result.new(
+        resultado = Result.new(
           persona_autorizada: persona,
           errors: [],
           onboarding_email_enviado: onboarding_email_enviado
         )
+        auditar_exito(resultado)
+        resultado
       else
-        Result.new(
+        resultado = Result.new(
           persona_autorizada: persona,
           errors: persona.errors.full_messages,
           onboarding_email_enviado: false
         )
+        auditar_fallo(resultado)
+        resultado
       end
     rescue ActiveRecord::RecordInvalid => e
-      Result.new(
-        persona_autorizada: persona,
-        errors: e.record.errors.full_messages,
-        onboarding_email_enviado: false
+      auditar_fallo(
+        Result.new(
+          persona_autorizada: persona,
+          errors: e.record.errors.full_messages,
+          onboarding_email_enviado: false
+        )
       )
+    end
+
+    private
+
+    def auditar_exito(resultado)
+      Auditoria::RegistrarPersona.call(
+        accion: Auditoria::Acciones::PERSONA_CREAR,
+        persona: resultado.persona_autorizada,
+        metadata: { onboarding_email_enviado: resultado.onboarding_email_enviado }
+      )
+    end
+
+    def auditar_fallo(resultado)
+      Auditoria::RegistrarPersona.call(
+        accion: Auditoria::Acciones::PERSONA_CREAR,
+        persona: resultado.persona_autorizada,
+        resultado: AuditEvent::RESULTADO_FALLO,
+        mensaje: resultado.errors.join(', '),
+        metadata: {
+          rut: @attributes[:rut],
+          email: @attributes[:email]
+        }
+      )
+      resultado
     end
   end
 end
