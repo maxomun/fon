@@ -7,6 +7,12 @@ import type {
   UserProfile,
 } from '@/features/auth/types/auth.types'
 import { isAuthOnboardingBlockCode } from '@/features/auth/types/auth.types'
+import {
+  invalidateSession,
+  isTokenExpiredError,
+  refreshAccessToken,
+  registerSessionInvalidationHandler,
+} from '@/features/auth/services/sessionManager'
 import { ApiError } from '@/services/apiClient'
 
 interface AuthProviderProps {
@@ -36,20 +42,26 @@ function isSessionBlockedError(error: unknown) {
 }
 
 async function tryRefreshSession(): Promise<UserProfile | null> {
-  const refreshToken = tokenStorage.getRefreshToken()
-  if (!refreshToken) {
+  const accessToken = await refreshAccessToken()
+  if (!accessToken) {
     return null
   }
 
-  const tokens = await authService.refresh(refreshToken)
-  tokenStorage.save(tokens)
-  const currentUser = tokens.user ?? (await fetchCurrentUser(tokens.access_token))
+  const currentUser = await fetchCurrentUser(accessToken)
   return normalizeUserProfile(currentUser)
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    registerSessionInvalidationHandler(() => {
+      setUser(null)
+    })
+
+    return () => registerSessionInvalidationHandler(null)
+  }, [])
 
   const restoreSession = useCallback(async () => {
     const accessToken = tokenStorage.getAccessToken()
@@ -65,30 +77,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     } catch (error) {
       if (isSessionBlockedError(error)) {
-        tokenStorage.clear()
+        invalidateSession({ expired: false })
         setUser(null)
         return
       }
 
-      const shouldRefresh =
-        error instanceof ApiError &&
-        (error.code === 'TOKEN_EXPIRED' || error.status === 401)
-
-      if (!shouldRefresh) {
-        tokenStorage.clear()
-        setUser(null)
-        return
+      if (isTokenExpiredError(error)) {
+        try {
+          const currentUser = await tryRefreshSession()
+          if (currentUser) {
+            setUser(currentUser)
+            return
+          }
+        } catch {
+          // Continúa con invalidación de sesión
+        }
       }
-    }
 
-    try {
-      const currentUser = await tryRefreshSession()
-      setUser(currentUser)
-      if (!currentUser) {
-        tokenStorage.clear()
-      }
-    } catch {
-      tokenStorage.clear()
+      invalidateSession()
       setUser(null)
     }
   }, [])

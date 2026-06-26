@@ -6,7 +6,7 @@ namespace :auditoria do
     unless ActiveRecord::Base.connection.data_source_exists?('audit_events')
       abort <<~MSG
         La tabla audit_events no existe.
-        Ejecute primero: psql ... -f db/manual/audit_events.sql
+        Ejecute primero: apps/db/manual/audit_events.sql (ver apps/db/README.md)
       MSG
     end
 

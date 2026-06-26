@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Alert, Button, LoadingScreen } from '@/components/ui'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { authService } from '@/features/auth/services/authService'
+import { consumeSessionExpiredFlag } from '@/features/auth/services/sessionManager'
 import type { LoginCredentials } from '@/features/auth/types/auth.types'
 import { ApiError } from '@/services/apiClient'
 
@@ -18,6 +19,15 @@ export function LoginPage() {
   const [pendingEmail, setPendingEmail] = useState('')
   const [resendMessage, setResendMessage] = useState<string | null>(null)
   const [isResending, setIsResending] = useState(false)
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (consumeSessionExpiredFlag()) {
+      setSessionExpiredMessage('Tu sesión expiró. Inicia sesión nuevamente.')
+    }
+  }, [])
 
   const redirectTo =
     (location.state as { from?: string } | null)?.from ?? '/dashboard'
@@ -78,6 +88,12 @@ export function LoginPage() {
 
   return (
     <AuthLayout title="Arribo" subtitle="Inicia sesión para continuar">
+      {sessionExpiredMessage ? (
+        <div className="mb-5">
+          <Alert variant="info">{sessionExpiredMessage}</Alert>
+        </div>
+      ) : null}
+
       <LoginForm
         onSubmit={handleLogin}
         isLoading={isSubmitting}

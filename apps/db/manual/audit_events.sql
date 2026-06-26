@@ -1,8 +1,8 @@
 -- Tabla de auditoría (Sprint 1: infraestructura + auth)
 -- Ejecutar manualmente en la BD de desarrollo/producción.
 --
--- Ejemplo:
---   psql -U postgres -d facturaon_development -f db/manual/audit_events.sql
+-- Ejemplo (local):
+--   docker compose exec -T postgres psql -U fon -d fon23_dev -f - < manual/audit_events.sql
 --
 -- Rollback (solo si necesita deshacer):
 --   DROP TABLE IF EXISTS audit_events;

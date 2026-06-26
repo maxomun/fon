@@ -8,11 +8,13 @@ services:
       - storage_data:/app/tmp/storage
     ports:
       - "3026:3000"
+    networks:
+      - fon-net
     environment:
       RAILS_ENV: ${RAILS_ENV:-development}
       RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-5}
-      # Base de datos externa
-      DB_HOST: ${DB_HOST}
+      # PostgreSQL local: fon-postgres (apps/db) o remoto vía .env
+      DB_HOST: ${DB_HOST:-fon-postgres}
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
@@ -40,6 +42,11 @@ services:
     stdin_open: true
     tty: true
     command: bundle exec rails server -b 0.0.0.0
+
+networks:
+  fon-net:
+    external: true
+    name: fon-net
 
 volumes:
   bundle_cache:

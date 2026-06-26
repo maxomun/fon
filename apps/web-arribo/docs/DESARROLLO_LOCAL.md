@@ -5,7 +5,27 @@ Aplicación web React (Vite + TypeScript) que consume el API **api-firma**.
 ## Requisitos
 
 - Docker y Docker Compose
+- **PostgreSQL local** (`apps/db`) levantado en la red `fon-net`
 - **api-firma** corriendo en `http://localhost:3026`
+
+## Base de datos local (primer uso)
+
+En una terminal:
+
+```bash
+cd apps/db
+cp .env.example .env
+# Colocar el respaldo en dumps/respaldo_fon23_dev.sql
+
+chmod +x scripts/*.sh
+./scripts/bootstrap.sh
+```
+
+Eso levanta PostgreSQL local (`localhost:5432`) y restaura el respaldo de `dumps/`.
+
+Para actualizar desde el servidor remoto: `./scripts/bootstrap.sh --fetch-remote`
+
+Documentación completa: [`apps/db/README.md`](../db/README.md).
 
 ## Configuración inicial
 
@@ -24,10 +44,13 @@ Variables en `.env`:
 
 ## Levantar el API (prerrequisito)
 
+**Orden:** primero `apps/db`, luego `apps/api-firma`.
+
 En otra terminal:
 
 ```bash
 cd apps/api-firma
+cp .env.example .env   # si aún no existe; DB_HOST=fon-postgres por defecto
 docker compose up -d
 ```
 
@@ -136,6 +159,7 @@ La app quedará en **http://localhost:5173**. El API sigue siendo necesario en e
 |---|---|---|
 | web-arribo | 5173 | http://localhost:5173 |
 | api-firma | 3026 | http://localhost:3026 |
+| PostgreSQL local | 5432 | `localhost:5432` (usuario `fon`, BD `fon23_dev`) |
 
 ## Notas
 

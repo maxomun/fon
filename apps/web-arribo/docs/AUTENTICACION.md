@@ -18,7 +18,9 @@ Al cargar la app, si hay `access_token` en `sessionStorage`:
 
 1. Se llama a `GET /api/v1/auth/me`.
 2. Si el token expiró (`401` / `TOKEN_EXPIRED`), se intenta `POST /api/v1/auth/refresh`.
-3. Si falla, se limpia la sesión local.
+3. Si falla, se limpia la sesión local y se redirige a `/login`.
+
+Durante el uso de la app, las peticiones autenticadas (`authenticatedClient`) aplican el mismo refresh automático. Si no se puede renovar la sesión, se cierra y se redirige al login con el mensaje «Tu sesión expiró».
 
 ## Rutas protegidas
 
@@ -48,6 +50,7 @@ Desde el header del dashboard:
 src/features/auth/
 ├── context/AuthProvider.tsx
 ├── services/authService.ts
+├── services/sessionManager.ts
 ├── services/tokenStorage.ts
 └── components/ProtectedRoute.tsx
 ```

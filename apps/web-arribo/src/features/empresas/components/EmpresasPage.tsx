@@ -265,6 +265,7 @@ export function EmpresasPage() {
                             navigate(`/empresas/${item.id}/personas-autorizadas`)
                           }
                           onProductos={(item) => navigate(`/empresas/${item.id}/productos`)}
+                          onEmitir={(item) => navigate(`/empresas/${item.id}/emitir`)}
                           onAuditoria={
                             isFonAdmin || empresa.es_administrador
                               ? (item) => navigate(`/empresas/${item.id}/auditoria`)

@@ -17,6 +17,7 @@ import { EmpresaPersonasAutorizadasPage } from '@/features/empresas/components/E
 import { EmpresaTiposDocumentosPage } from '@/features/empresas/components/EmpresaTiposDocumentosPage'
 import { EmpresaRangosFoliosPage } from '@/features/empresas/components/EmpresaRangosFoliosPage'
 import { EmpresaProductosPage } from '@/features/productos/components/EmpresaProductosPage'
+import { EmpresaEmitirPage } from '@/features/emision/components/EmpresaEmitirPage'
 import { ImpuestosPage } from '@/features/impuestos/components/ImpuestosPage'
 import { UsuariosPage } from '@/features/usuarios/components/UsuariosPage'
 import { AuditoriaPage } from '@/features/auditoria/components/AuditoriaPage'
@@ -126,6 +127,16 @@ export function AppRouter() {
           <ProtectedRoute>
             <EmpresaAccessProtectedRoute>
               <EmpresaProductosPage />
+            </EmpresaAccessProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresas/:id/emitir"
+        element={
+          <ProtectedRoute>
+            <EmpresaAccessProtectedRoute>
+              <EmpresaEmitirPage />
             </EmpresaAccessProtectedRoute>
           </ProtectedRoute>
         }
