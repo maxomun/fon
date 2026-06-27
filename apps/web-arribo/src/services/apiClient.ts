@@ -5,6 +5,12 @@ function formatApiErrorMessage(data: ApiResponse<unknown>) {
     return data.errors.join('. ')
   }
 
+  if (typeof data.error === 'string' && data.error.length > 0) {
+    return typeof data.fase === 'string' && data.fase.length > 0
+      ? `${data.error} (fase: ${data.fase})`
+      : data.error
+  }
+
   return data.message ?? 'Error en la solicitud'
 }
 
@@ -25,6 +31,8 @@ export class ApiError extends Error {
 type ApiResponse<T> = T & {
   success?: boolean
   message?: string
+  error?: string
+  fase?: string
   code?: string
   errors?: string[]
 }

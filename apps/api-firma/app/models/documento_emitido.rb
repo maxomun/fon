@@ -9,6 +9,7 @@ class DocumentoEmitido < ApplicationRecord
   belongs_to :cliente, optional: true
   belongs_to :usuario, class_name: 'User', foreign_key: :usuario_id
   belongs_to :asociado, class_name: 'DocumentoEmitido', optional: true
+  belongs_to :dte_envio, optional: true
   has_many :documentos_asociados, class_name: 'DocumentoEmitido', foreign_key: :asociado_id, dependent: :nullify
   has_many :venta_detalles, dependent: :destroy
 

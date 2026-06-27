@@ -142,6 +142,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["empresa_id", "rut"], name: "uq_clientes_rut_empresa"
   end
 
+  create_table "dte_envios", force: :cascade do |t|
+    t.integer "empresa_id", null: false
+    t.integer "usuario_id", null: false
+    t.datetime "created_at", precision: nil, default: -> { "now()" }, null: false
+    t.index ["empresa_id", "created_at"], name: "idx_dte_envios_empresa_created", order: { created_at: :desc }
+  end
+
   create_table "documento_emitidos", id: :integer, default: nil, comment: "Documentos DTE, apunta a un documento en el sistema origen.", force: :cascade do |t|
     t.integer "empresa_id", null: false, comment: "Codigo intenro de la empresa que emitio el documento (facturaon soporta asi multiples empresas)"
     t.integer "folio", null: false, comment: "Numero de folio del DTE"
@@ -164,7 +171,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.boolean "ingreso_autonomo", null: false, comment: "Indica si el documento se origina en el propio facturador."
     t.integer "referencia_id", null: false, comment: "PAra el caso de funcionamiento de facturaon integrado a otro sistema, relaciona el DTe al documento origen (el del sistema origen)."
     t.integer "asociado_id", comment: "Indica que el documento hace refencia a otro DTE (ejemplo: caso nota credito de factura)"
+    t.integer "dte_envio_id", comment: "Envío DTE (XML firmado en Active Storage) al que pertenece este folio."
 
+    t.index ["dte_envio_id"], name: "idx_documento_emitidos_dte_envio"
     t.unique_constraint ["ruta_imagen"], name: "uq_ruta_imagen"
   end
 
@@ -426,8 +435,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "certificados", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_certificados_personas_autorizadas"
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
+  add_foreign_key "documento_emitidos", "dte_envios", name: "fk_documento_emitidos_dte_envios"
   add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
   add_foreign_key "documento_emitidos", "users", column: "usuario_id", name: "fk_documento_ventas_usuarios"
+  add_foreign_key "dte_envios", "empresas", name: "fk_dte_envios_empresas"
+  add_foreign_key "dte_envios", "users", column: "usuario_id", name: "fk_dte_envios_users"
   add_foreign_key "documento_recibidos", "proveedores", name: "fk_documento_compras_proveedores"
   add_foreign_key "documento_recibidos", "tipo_documentos", name: "fk_documento_compras_tipo_documentos"
   add_foreign_key "documento_recibidos", "users", name: "fk_documento_compras_usuarios"

@@ -18,6 +18,7 @@ class Empresa < ApplicationRecord
   has_many :rango_folios, dependent: :destroy
   has_many :folios, dependent: :destroy
   has_many :documento_emitidos, dependent: :restrict_with_error
+  has_many :dte_envios, dependent: :restrict_with_error
   has_many :documento_recibidos, dependent: :restrict_with_error
   has_many :empresa_personas_autorizadas,
            class_name: 'EmpresaPersonaAutorizada',

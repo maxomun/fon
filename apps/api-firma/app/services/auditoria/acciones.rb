@@ -69,6 +69,8 @@ module Auditoria
     DTE_GENERAR_XML = 'dte.generar_xml'
     DTE_FIRMAR = 'dte.firmar'
     DTE_EMITIR = 'dte.emitir'
+    DTE_LIMPIAR_ENVIO = 'dte.limpiar_envio'
+    DTE_LIMPIAR_ENVIOS = 'dte.limpiar_envios'
 
     PRODUCTO_CREAR = 'producto.crear'
     PRODUCTO_ACTUALIZAR = 'producto.actualizar'
@@ -125,6 +127,8 @@ module Auditoria
       DTE_GENERAR_XML => 'Generó XML de DTE',
       DTE_FIRMAR => 'Firmó DTE',
       DTE_EMITIR => 'Emitió DTE',
+      DTE_LIMPIAR_ENVIO => 'Limpió envío DTE de prueba',
+      DTE_LIMPIAR_ENVIOS => 'Limpió envíos DTE de prueba',
       PRODUCTO_CREAR => 'Creó producto',
       PRODUCTO_ACTUALIZAR => 'Actualizó producto',
       PRODUCTO_ELIMINAR => 'Eliminó producto'

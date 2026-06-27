@@ -21,6 +21,7 @@ class User < ApplicationRecord
   has_many :token_blacklists, dependent: :destroy
   has_many :onboarding_tokens, dependent: :destroy
   has_many :documento_emitidos, foreign_key: :usuario_id, dependent: :restrict_with_error
+  has_many :dte_envios, foreign_key: :usuario_id, dependent: :restrict_with_error
   has_many :documento_recibidos, dependent: :restrict_with_error
 
   # Validaciones

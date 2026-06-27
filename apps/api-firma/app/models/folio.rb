@@ -39,4 +39,8 @@ class Folio < ApplicationRecord
   def liberar!
     update!(reservado: false, disponible: true)
   end
+
+  def liberar_uso!
+    update!(usado: false, disponible: true, anulado: false, reservado: false)
+  end
 end

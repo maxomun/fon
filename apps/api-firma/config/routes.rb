@@ -81,6 +81,20 @@ Rails.application.routes.draw do
             get :impuestos_disponibles
           end
         end
+        resources :documentos_emitidos,
+                  only: [:index, :show],
+                  controller: 'empresa_documentos_emitidos'
+        resources :dte_envios,
+                  only: [],
+                  controller: 'empresa_dte_envios' do
+          collection do
+            delete :limpiar_todos
+          end
+          member do
+            get :xml
+            delete :limpiar
+          end
+        end
       end
 
       resources :tipo_documentos, only: [:index]

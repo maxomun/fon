@@ -474,6 +474,7 @@ module Api
         return render_resultado_emision(resultado) unless resultado[:success]
 
         resultado_persistencia = nil
+        resultado_archivo = nil
         error_post_firma = nil
 
         ActiveRecord::Base.transaction do
@@ -488,6 +489,20 @@ module Api
 
           unless resultado_persistencia[:success]
             error_post_firma = resultado_persistencia[:error]
+            raise ActiveRecord::Rollback
+          end
+
+          resultado_archivo = Dte::ArchivadorXml.call(
+            empresa: resultado[:empresa],
+            usuario: current_user,
+            tipo_documento: params[:tipo_documento].to_i,
+            xml_firmado: resultado[:resultado_firma][:xml_firmado],
+            documentos: resultado_persistencia[:documentos],
+            folios: resultado[:resultado_folios][:folios_usados]
+          )
+
+          unless resultado_archivo[:success]
+            error_post_firma = resultado_archivo[:error]
             raise ActiveRecord::Rollback
           end
 
@@ -532,7 +547,8 @@ module Api
           metadata: metadata_dte_emision_completa(resultado, resultado_persistencia: resultado_persistencia, resultado_envio: resultado_envio)
         )
 
-        render json: respuesta_generar(resultado, resultado_persistencia, resultado_envio), status: :ok
+        render json: respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio),
+               status: :ok
       rescue StandardError => e
         auditar_dte_fallo(
           accion: Auditoria::Acciones::DTE_EMITIR,
@@ -691,12 +707,16 @@ module Api
         }
       end
 
-      def respuesta_generar(resultado, resultado_persistencia, resultado_envio)
+      def respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio)
+        dte_envio = resultado_archivo[:dte_envio]
+
         {
           success: true,
           message: mensaje_generar(resultado_envio),
           data: {
             archivo_firmado: resultado[:archivo_firmado],
+            dte_envio_id: dte_envio.id,
+            xml_archivado: dte_envio.xml_firmado.attached?,
             total_documentos: resultado[:resultado_xml][:total_documentos],
             folios_usados: resultado[:resultado_folios][:folios_usados],
             documentos_emitidos: resultado_persistencia[:documentos].map { |doc| documento_emitido_json(doc) },
@@ -736,7 +756,8 @@ module Api
           folio: documento.folio,
           tipo_documento: documento.tipo_documento_codigo,
           rut_receptor: documento.rut_receptor,
-          razon_social_receptor: documento.razon_social_receptor
+          razon_social_receptor: documento.razon_social_receptor,
+          dte_envio_id: documento.dte_envio_id
         }
       end
 

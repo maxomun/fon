@@ -41,12 +41,17 @@ export function EmpresaEmitirPage() {
       </div>
 
       <header className="page-header">
-        <h1>Emitir documento tributario</h1>
-        {empresa ? (
-          <p className="page-header__subtitle">
-            {empresa.razon_social} · RUT {empresa.rut}
-          </p>
-        ) : null}
+        <div>
+          <h1>Emitir documento tributario</h1>
+          {empresa ? (
+            <p className="page-header__subtitle">
+              {empresa.razon_social} · RUT {empresa.rut}
+            </p>
+          ) : null}
+        </div>
+        <Link className="emision-checklist__link" to={`/empresas/${empresaId}/documentos`}>
+          Ver documentos emitidos
+        </Link>
       </header>
 
       {resultado.listoParaEmitir ? (
@@ -86,12 +91,18 @@ export function EmpresaEmitirPage() {
         <h2>Siguiente paso</h2>
         <p className="emision-panel__intro">
           {resultado.listoParaEmitir
-            ? 'En la siguiente fase podrá completar receptor, ítems y emitir el documento desde esta misma pantalla.'
+            ? 'Complete receptor e ítems para timbrar una Factura Electrónica (33).'
             : 'Cuando todos los requisitos estén en verde, podrá continuar al formulario de emisión.'}
         </p>
-        <Button disabled title="Disponible en la Fase 5">
-          Continuar a emitir (próximamente)
-        </Button>
+        {resultado.listoParaEmitir ? (
+          <Link className="emision-checklist__link" to={`/empresas/${empresaId}/emitir/nuevo`}>
+            Continuar a emitir
+          </Link>
+        ) : (
+          <Button disabled title="Complete los requisitos previos">
+            Continuar a emitir
+          </Button>
+        )}
       </section>
     </AppLayout>
   )

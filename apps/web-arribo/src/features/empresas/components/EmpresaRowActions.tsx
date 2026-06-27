@@ -14,6 +14,7 @@ interface EmpresaRowActionsProps {
   onAuditoria?: (empresa: Empresa) => void
   onProductos?: (empresa: Empresa) => void
   onEmitir?: (empresa: Empresa) => void
+  onDocumentos?: (empresa: Empresa) => void
 }
 
 export function EmpresaRowActions({
@@ -29,6 +30,7 @@ export function EmpresaRowActions({
   onAuditoria,
   onProductos,
   onEmitir,
+  onDocumentos,
 }: EmpresaRowActionsProps) {
   return (
     <DropdownMenu
@@ -80,6 +82,12 @@ export function EmpresaRowActions({
           label: 'Emitir DTE',
           disabled: !onEmitir,
           onClick: onEmitir ? () => onEmitir(empresa) : undefined,
+        },
+        {
+          id: 'documentos',
+          label: 'Documentos emitidos',
+          disabled: !onDocumentos,
+          onClick: onDocumentos ? () => onDocumentos(empresa) : undefined,
         },
         {
           id: 'auditoria',
