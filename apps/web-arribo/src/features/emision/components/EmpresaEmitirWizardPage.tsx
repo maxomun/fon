@@ -7,6 +7,7 @@ import { EmisionResultadoPanel } from '@/features/emision/components/EmisionResu
 import { EmisionWizardStickyFooter } from '@/features/emision/components/EmisionWizardStickyFooter'
 import { useEmisionWizard } from '@/features/emision/hooks/useEmisionWizard'
 import { FACTURA_ELECTRONICA_CODIGO } from '@/features/emision/types/emision.types'
+import { rutaEmitirRequisitos } from '@/features/emision/utils/evaluarPrerrequisitos'
 
 export function EmpresaEmitirWizardPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,7 +50,7 @@ export function EmpresaEmitirWizardPage() {
     return (
       <AppLayout>
         <div className="page-back-link">
-          <Link to={`/empresas/${empresaId}/emitir`}>← Volver</Link>
+          <Link to={rutaEmitirRequisitos(empresaId)}>← Volver</Link>
         </div>
         <Alert variant="error">{pageError}</Alert>
       </AppLayout>
@@ -59,7 +60,10 @@ export function EmpresaEmitirWizardPage() {
   return (
     <AppLayout>
       <div className="page-back-link">
-        <Link to={`/empresas/${empresaId}/emitir`}>← Volver a requisitos</Link>
+        <Link to="/empresas">← Volver a empresas</Link>
+        <Link className="emision-checklist__link" to={rutaEmitirRequisitos(empresaId)}>
+          Ver requisitos
+        </Link>
       </div>
 
       <header className="page-header">
@@ -124,7 +128,6 @@ export function EmpresaEmitirWizardPage() {
           </section>
 
           <EmisionWizardStickyFooter
-            empresaId={empresaId}
             totales={totales}
             cantidadItems={lineasCalculadas.length}
             isSubmitting={isSubmitting}

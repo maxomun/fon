@@ -4,6 +4,11 @@ import type {
   PrerrequisitosResultado,
 } from '@/features/emision/types/prerrequisitos.types'
 
+export const FOLIOS_BAJOS_UMBRAL = 5
+export const CERTIFICADO_DIAS_AVISO = 30
+
+export const EMISION_VER_REQUISITOS_QUERY = 'requisitos'
+
 function formatFechaCertificado(value: string | null) {
   if (!value) {
     return null
@@ -15,6 +20,23 @@ function formatFechaCertificado(value: string | null) {
   }
 
   return date.toLocaleDateString('es-CL')
+}
+
+function diasHastaFecha(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const fecha = new Date(value)
+  if (Number.isNaN(fecha.getTime())) {
+    return null
+  }
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  fecha.setHours(0, 0, 0, 0)
+
+  return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 function tiposHabilitadosLabel(tipos: PrerrequisitosInput['tiposHabilitados']) {
@@ -30,6 +52,14 @@ function tiposHabilitadosLabel(tipos: PrerrequisitosInput['tiposHabilitados']) {
   return codigos ? ` (${codigos})` : ''
 }
 
+export function debeRedirigirAlWizard(resultado: PrerrequisitosResultado) {
+  return resultado.listoParaEmitir && resultado.advertencias === 0
+}
+
+export function rutaEmitirRequisitos(empresaId: number) {
+  return `/empresas/${empresaId}/emitir?ver=${EMISION_VER_REQUISITOS_QUERY}`
+}
+
 export function evaluarPrerrequisitos(input: PrerrequisitosInput): PrerrequisitosResultado {
   const { empresaId, empresa, productosActivosCount, tiposHabilitados, personas } = input
 
@@ -37,6 +67,13 @@ export function evaluarPrerrequisitos(input: PrerrequisitosInput): Prerrequisito
     (total, tipo) => total + tipo.folios_disponibles,
     0,
   )
+  const foliosBajos =
+    foliosDisponibles > 0 && foliosDisponibles < FOLIOS_BAJOS_UMBRAL
+  const diasCertificado = diasHastaFecha(empresa.fecha_caducacion_certificado)
+  const certificadoPorVencer =
+    empresa.tiene_certificado_vigente &&
+    diasCertificado !== null &&
+    diasCertificado <= CERTIFICADO_DIAS_AVISO
   const personasConCertificado = personas.filter((persona) => persona.tiene_certificado_vigente)
 
   const items: PrerrequisitoItem[] = [
@@ -65,23 +102,32 @@ export function evaluarPrerrequisitos(input: PrerrequisitosInput): Prerrequisito
     {
       id: 'folios',
       titulo: 'Folios CAF disponibles',
-      estado: foliosDisponibles > 0 ? 'ok' : 'pendiente',
+      estado:
+        foliosDisponibles === 0 ? 'pendiente' : foliosBajos ? 'advertencia' : 'ok',
       mensaje:
-        foliosDisponibles > 0
-          ? `${foliosDisponibles} folio${foliosDisponibles === 1 ? '' : 's'} disponible${foliosDisponibles === 1 ? '' : 's'} para timbrar.`
-          : tiposHabilitados.length === 0
+        foliosDisponibles === 0
+          ? tiposHabilitados.length === 0
             ? 'Primero habilite un tipo de documento y luego cargue un archivo CAF.'
-            : 'Debe cargar un rango CAF con folios disponibles para el tipo habilitado.',
+            : 'Debe cargar un rango CAF con folios disponibles para el tipo habilitado.'
+          : foliosBajos
+            ? `Quedan ${foliosDisponibles} folio${foliosDisponibles === 1 ? '' : 's'} disponible${foliosDisponibles === 1 ? '' : 's'}. Considere cargar un nuevo CAF antes de quedarse sin folios.`
+            : `${foliosDisponibles} folio${foliosDisponibles === 1 ? '' : 's'} disponible${foliosDisponibles === 1 ? '' : 's'} para timbrar.`,
       linkTo: `/empresas/${empresaId}/rangos-folios`,
       linkLabel: 'Ir a rangos de folios',
     },
     {
       id: 'certificado',
       titulo: 'Certificado digital vigente',
-      estado: empresa.tiene_certificado_vigente ? 'ok' : 'pendiente',
-      mensaje: empresa.tiene_certificado_vigente
-        ? `Certificado vigente${formatFechaCertificado(empresa.fecha_caducacion_certificado) ? ` hasta el ${formatFechaCertificado(empresa.fecha_caducacion_certificado)}` : ''}.`
-        : 'La empresa no tiene un certificado digital vigente para firmar documentos.',
+      estado: !empresa.tiene_certificado_vigente
+        ? 'pendiente'
+        : certificadoPorVencer
+          ? 'advertencia'
+          : 'ok',
+      mensaje: !empresa.tiene_certificado_vigente
+        ? 'La empresa no tiene un certificado digital vigente para firmar documentos.'
+        : certificadoPorVencer
+          ? `El certificado vence${formatFechaCertificado(empresa.fecha_caducacion_certificado) ? ` el ${formatFechaCertificado(empresa.fecha_caducacion_certificado)}` : ' pronto'} (${diasCertificado === 0 ? 'hoy' : `en ${diasCertificado} día${diasCertificado === 1 ? '' : 's'}`}). Renueve a tiempo para evitar interrupciones.`
+          : `Certificado vigente${formatFechaCertificado(empresa.fecha_caducacion_certificado) ? ` hasta el ${formatFechaCertificado(empresa.fecha_caducacion_certificado)}` : ''}.`,
       linkTo: `/empresas/${empresaId}/certificados`,
       linkLabel: 'Ir a certificados',
       ayudaSinLink:
@@ -103,10 +149,12 @@ export function evaluarPrerrequisitos(input: PrerrequisitosInput): Prerrequisito
   ]
 
   const pendientes = items.filter((item) => item.estado === 'pendiente').length
+  const advertencias = items.filter((item) => item.estado === 'advertencia').length
 
   return {
     items,
     listoParaEmitir: pendientes === 0,
     pendientes,
+    advertencias,
   }
 }

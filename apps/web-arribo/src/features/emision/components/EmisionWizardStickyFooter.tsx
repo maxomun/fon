@@ -4,7 +4,6 @@ import type { EmisionTotales } from '@/features/emision/types/emision.types'
 import { formatPrecioProducto } from '@/features/productos/types/producto.types'
 
 interface EmisionWizardStickyFooterProps {
-  empresaId: number
   totales: EmisionTotales
   cantidadItems: number
   isSubmitting: boolean
@@ -12,7 +11,6 @@ interface EmisionWizardStickyFooterProps {
 }
 
 export function EmisionWizardStickyFooter({
-  empresaId,
   totales,
   cantidadItems,
   isSubmitting,
@@ -50,7 +48,7 @@ export function EmisionWizardStickyFooter({
           <Button type="submit" isLoading={isSubmitting} disabled={!canEmit}>
             Emitir factura
           </Button>
-          <Link className="emision-checklist__link" to={`/empresas/${empresaId}/emitir`}>
+          <Link className="emision-checklist__link" to="/empresas">
             Cancelar
           </Link>
         </div>

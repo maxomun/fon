@@ -1,19 +1,29 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, Button, LoadingScreen } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { hasAccesoGlobal } from '@/features/auth/utils/roles'
 import { EmisionPrerrequisitosChecklist } from '@/features/emision/components/EmisionPrerrequisitosChecklist'
 import { useEmisionPrerrequisitos } from '@/features/emision/hooks/useEmisionPrerrequisitos'
+import {
+  debeRedirigirAlWizard,
+  EMISION_VER_REQUISITOS_QUERY,
+} from '@/features/emision/utils/evaluarPrerrequisitos'
 
 export function EmpresaEmitirPage() {
   const { id } = useParams<{ id: string }>()
   const empresaId = Number(id)
+  const [searchParams] = useSearchParams()
+  const verRequisitos = searchParams.get('ver') === EMISION_VER_REQUISITOS_QUERY
   const { user } = useAuth()
   const isFonAdmin = hasAccesoGlobal(user)
 
   const { empresa, resultado, isLoading, isRefreshing, pageError, reload } =
     useEmisionPrerrequisitos(empresaId)
+
+  if (!Number.isFinite(empresaId) || empresaId <= 0) {
+    return <Navigate to="/empresas" replace />
+  }
 
   if (isLoading) {
     return (
@@ -32,6 +42,10 @@ export function EmpresaEmitirPage() {
         <Alert variant="error">{pageError}</Alert>
       </AppLayout>
     )
+  }
+
+  if (!verRequisitos && debeRedirigirAlWizard(resultado)) {
+    return <Navigate to={`/empresas/${empresaId}/emitir/nuevo`} replace />
   }
 
   return (
@@ -54,14 +68,19 @@ export function EmpresaEmitirPage() {
         </Link>
       </header>
 
-      {resultado.listoParaEmitir ? (
-        <Alert variant="success">
-          Todo listo. La empresa cumple los requisitos para emitir documentos electrónicos.
-        </Alert>
-      ) : (
+      {!resultado.listoParaEmitir ? (
         <Alert variant="info">
           Complete los requisitos pendientes antes de emitir. Faltan {resultado.pendientes}{' '}
           {resultado.pendientes === 1 ? 'paso' : 'pasos'}.
+        </Alert>
+      ) : resultado.advertencias > 0 ? (
+        <Alert variant="info">
+          Puede emitir, pero revise {resultado.advertencias}{' '}
+          {resultado.advertencias === 1 ? 'advertencia' : 'advertencias'} antes de continuar.
+        </Alert>
+      ) : (
+        <Alert variant="success">
+          Todo listo. La empresa cumple los requisitos para emitir documentos electrónicos.
         </Alert>
       )}
 

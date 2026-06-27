@@ -12,6 +12,7 @@ const resultadoInicial: PrerrequisitosResultado = {
   items: [],
   listoParaEmitir: false,
   pendientes: 0,
+  advertencias: 0,
 }
 
 export function useEmisionPrerrequisitos(empresaId: number) {

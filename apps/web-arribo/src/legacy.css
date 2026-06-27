@@ -194,6 +194,10 @@ p {
 
 .page-back-link {
   margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
 }
 
 .page-back-link a {
@@ -993,6 +997,11 @@ p {
   background: #fff8f8;
 }
 
+.emision-checklist__item--advertencia {
+  border-left: 4px solid #d97706;
+  background: #fffbeb;
+}
+
 .emision-checklist__icon {
   flex-shrink: 0;
   width: 1.75rem;
@@ -1013,6 +1022,11 @@ p {
 .emision-checklist__icon--pendiente {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.emision-checklist__icon--advertencia {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .emision-checklist__content {

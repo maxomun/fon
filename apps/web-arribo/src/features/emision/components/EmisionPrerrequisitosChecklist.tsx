@@ -7,7 +7,15 @@ interface EmisionPrerrequisitosChecklistProps {
 }
 
 function estadoIcon(estado: PrerrequisitoItem['estado']) {
-  return estado === 'ok' ? '✓' : '!'
+  if (estado === 'ok') {
+    return '✓'
+  }
+
+  if (estado === 'advertencia') {
+    return '!'
+  }
+
+  return '!'
 }
 
 export function EmisionPrerrequisitosChecklist({
@@ -20,6 +28,8 @@ export function EmisionPrerrequisitosChecklist({
         const mostrarLinkCertificados =
           item.id === 'certificado' ? puedeGestionarCertificados : true
         const linkTo = mostrarLinkCertificados ? item.linkTo : undefined
+        const mostrarAcciones =
+          item.estado === 'pendiente' || (item.estado === 'advertencia' && linkTo)
 
         return (
           <li
@@ -37,7 +47,7 @@ export function EmisionPrerrequisitosChecklist({
               <h3 className="emision-checklist__title">{item.titulo}</h3>
               <p className="emision-checklist__message">{item.mensaje}</p>
 
-              {item.estado === 'pendiente' ? (
+              {mostrarAcciones ? (
                 <div className="emision-checklist__actions">
                   {linkTo && item.linkLabel ? (
                     <Link className="emision-checklist__link" to={linkTo}>

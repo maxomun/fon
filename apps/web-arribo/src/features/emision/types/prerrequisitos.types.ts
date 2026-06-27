@@ -2,7 +2,7 @@ import type { Empresa } from '@/features/empresas/types/empresa.types'
 import type { PersonaAutorizada } from '@/features/empresas/types/personaAutorizada.types'
 import type { TipoHabilitado } from '@/features/empresas/types/tipoHabilitado.types'
 
-export type PrerrequisitoEstado = 'ok' | 'pendiente'
+export type PrerrequisitoEstado = 'ok' | 'pendiente' | 'advertencia'
 
 export type PrerrequisitoId =
   | 'productos'
@@ -33,4 +33,5 @@ export interface PrerrequisitosResultado {
   items: PrerrequisitoItem[]
   listoParaEmitir: boolean
   pendientes: number
+  advertencias: number
 }
