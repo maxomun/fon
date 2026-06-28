@@ -5,6 +5,7 @@ module Api
     class EmpresasController < BaseController
       include EmpresaAuthorizable
       include EmpresaConfigAuditable
+      include EmpresaLogoSerializable
 
       before_action :require_empresas_visibility!, only: [:index]
       before_action :authorize_empresa_show!, only: [:show]
@@ -164,6 +165,7 @@ module Api
           telefono1: empresa.telefono1,
           telefono2: empresa.telefono2,
           archivo_logo: empresa.archivo_logo,
+          logo: logo_payload(empresa),
           fecha_creacion: empresa.fecha_creacion,
           fecha_actualizacion: empresa.fecha_actualizacion,
           es_administrador: es_administrador

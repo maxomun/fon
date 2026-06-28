@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Button, Input } from '@/components/ui'
-import type { Empresa, EmpresaInput } from '@/features/empresas/types/empresa.types'
+import { EmpresaLogoSection } from '@/features/empresas/components/EmpresaLogoSection'
+import type { Empresa, EmpresaInput, EmpresaLogoInfo } from '@/features/empresas/types/empresa.types'
 import {
   emptyEmpresaInput,
   empresaToInput,
@@ -182,6 +183,7 @@ interface EmpresaFormPanelProps {
   error?: string | null
   onSubmit: (values: EmpresaInput) => Promise<void>
   onCancel: () => void
+  onLogoChange?: (logo: EmpresaLogoInfo) => void
 }
 
 export function EmpresaFormPanel({
@@ -191,6 +193,7 @@ export function EmpresaFormPanel({
   error,
   onSubmit,
   onCancel,
+  onLogoChange,
 }: EmpresaFormPanelProps) {
   const [paises, setPaises] = useState<Pais[]>([])
   const [isLoadingPaises, setIsLoadingPaises] = useState(true)
@@ -257,6 +260,17 @@ export function EmpresaFormPanel({
         onSubmit={onSubmit}
         onCancel={onCancel}
       />
+      {empresa ? (
+        <EmpresaLogoSection
+          empresaId={empresa.id}
+          initialLogo={empresa.logo}
+          onLogoChange={onLogoChange}
+        />
+      ) : (
+        <p className="empresa-logo-section__hint empresa-logo-section__hint--create">
+          Tras crear la empresa podrá subir el logo para los PDF tributarios.
+        </p>
+      )}
     </section>
   )
 }

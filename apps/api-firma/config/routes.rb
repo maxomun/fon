@@ -75,6 +75,7 @@ Rails.application.routes.draw do
         resources :rangos_folios,
                   only: [:index, :show, :create, :destroy],
                   controller: 'empresa_rango_folios'
+        resource :logo, only: [:show, :create, :destroy], controller: 'empresa_logos'
         resources :productos,
                   only: [:index, :show, :create, :update, :destroy],
                   controller: 'empresa_productos' do

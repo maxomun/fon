@@ -4,6 +4,14 @@ export interface EmpresaPais {
   nombre: string
 }
 
+export interface EmpresaLogoInfo {
+  disponible: boolean
+  filename?: string
+  content_type?: string
+  byte_size?: number
+  url?: string
+}
+
 export interface Empresa {
   id: number
   pais_id: number
@@ -19,6 +27,7 @@ export interface Empresa {
   telefono1: string | null
   telefono2: string | null
   archivo_logo: string | null
+  logo?: EmpresaLogoInfo
   fecha_creacion: string
   fecha_actualizacion: string
   tiene_certificado_vigente: boolean
@@ -30,6 +39,8 @@ export type EmpresaInput = Omit<
   Empresa,
   | 'id'
   | 'pais'
+  | 'logo'
+  | 'archivo_logo'
   | 'fecha_creacion'
   | 'fecha_actualizacion'
   | 'tiene_certificado_vigente'
@@ -52,6 +63,14 @@ export interface EmpresaDeleteResponse {
   message?: string
 }
 
+export interface EmpresaLogoResponse {
+  success: boolean
+  data: EmpresaLogoInfo
+  message?: string
+}
+
+export const emptyEmpresaLogo = (): EmpresaLogoInfo => ({ disponible: false })
+
 export const emptyEmpresaInput = (paisId = 0): EmpresaInput => ({
   pais_id: paisId,
   rut: '',
@@ -64,7 +83,6 @@ export const emptyEmpresaInput = (paisId = 0): EmpresaInput => ({
   numero_resolucion: 0,
   telefono1: '',
   telefono2: '',
-  archivo_logo: '',
 })
 
 export function empresaToInput(empresa: Empresa): EmpresaInput {
@@ -80,7 +98,6 @@ export function empresaToInput(empresa: Empresa): EmpresaInput {
     numero_resolucion: empresa.numero_resolucion,
     telefono1: empresa.telefono1 ?? '',
     telefono2: empresa.telefono2 ?? '',
-    archivo_logo: empresa.archivo_logo ?? '',
   }
 }
 
@@ -90,7 +107,6 @@ export function empresaPayload(input: EmpresaInput) {
       ...input,
       telefono1: input.telefono1 || null,
       telefono2: input.telefono2 || null,
-      archivo_logo: input.archivo_logo || null,
     },
   }
 }

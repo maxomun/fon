@@ -132,3 +132,44 @@ docker compose up -d facturaon-api
 ```
 
 Con volumen `.:/app`, el entrypoint instala `node_modules` si falta al arrancar.
+
+## Logo empresa (L1 + L2)
+
+Backend para logo optimizado en PDF (front L3 ✅, PDF L4 ✅).
+
+| Pieza | Detalle |
+|-------|---------|
+| Modelo | `Empresa#logo` (`has_one_attached`) + sync `archivo_logo` |
+| Procesador | `Empresas::ProcesadorLogo` — PNG/JPEG/WebP, proporción 2:1–4:1, resize 540×180, ≤150 KB |
+| Endpoints | `GET/POST/DELETE /api/v1/empresas/:id/logo` (POST: form-data `archivo`) |
+| Payload | `empresa.logo` → `{ disponible, url, filename, content_type, byte_size }` |
+| PDF | `PresentadorDocumento#logo_data_uri` → `<img>` en `_encabezado.html.erb`; sin logo = espacio vacío |
+
+```bash
+cd apps/api-firma
+ruby script/verify_empresa_logo_procesador.rb
+
+# Subir logo (admin FON)
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@logo.png" \
+  "http://localhost:3026/api/v1/empresas/155/logo"
+```
+
+### L4 — Logo en PDF
+
+- `Dte::Pdf::PresentadorDocumento` expone `logo_data_uri` (data URI desde Active Storage).
+- `_encabezado.html.erb`: imagen si hay logo; si no, caja vacía 180×60 sin texto ni borde.
+
+Regenerar PDF con logo:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:3026/api/v1/empresas/155/documentos_emitidos/7/pdf?force=true" \
+  -o factura.pdf
+```
+
+### L3 — Front (web-arribo)
+
+- Sección **Logo para PDF** en editar empresa (`EmpresaLogoSection`)
+- Validación cliente: formato, 5 MB, proporción ~3:1, mínimo 180×60 px
+- Vista previa autenticada vía `GET /empresas/:id/logo`

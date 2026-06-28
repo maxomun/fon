@@ -37,6 +37,7 @@ module Dte
           },
           ted_placeholder: timbre[:placeholder],
           ted_imagen_data_uri: timbre[:data_uri],
+          logo_data_uri: logo_data_uri,
           resolucion_timbre: documento.empresa.resolucion_timbre
         }
       end
@@ -162,6 +163,14 @@ module Dte
 
       def placeholder_timbre
         { placeholder: true, data_uri: nil }
+      end
+
+      def logo_data_uri
+        logo = documento.empresa.logo
+        return nil unless logo.attached?
+
+        blob = logo.blob
+        "data:#{blob.content_type};base64,#{Base64.strict_encode64(blob.download)}"
       end
     end
   end

@@ -428,6 +428,84 @@ p {
   border-top: 1px solid #ececec;
 }
 
+.empresa-logo-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ececec;
+}
+
+.empresa-logo-section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.empresa-logo-section__hint {
+  margin: 0 0 1rem;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.empresa-logo-section__hint--create {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ececec;
+}
+
+.empresa-logo-section__preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.empresa-logo-section__preview {
+  width: 180px;
+  min-height: 60px;
+  border: 1px dashed #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: #fafafa;
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.empresa-logo-section__preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 60px;
+  object-fit: contain;
+}
+
+.empresa-logo-section__meta {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.empresa-logo-section__meta div {
+  margin-bottom: 0.35rem;
+}
+
+.empresa-logo-section__meta dt {
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.empresa-logo-section__meta dd {
+  margin: 0.1rem 0 0;
+}
+
+.empresa-logo-section__actions {
+  border-top: none;
+  padding-top: 0;
+}
+
 /* Legacy app layout (removed column layout) */
 .app-layout {
   min-height: 100vh;

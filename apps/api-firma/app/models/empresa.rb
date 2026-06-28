@@ -8,6 +8,7 @@ class Empresa < ApplicationRecord
 
   # Relaciones
   belongs_to :pais
+  has_one_attached :logo
   has_many :acteco_empresas, dependent: :destroy
   has_many :actecos, through: :acteco_empresas
   has_many :clientes, dependent: :destroy

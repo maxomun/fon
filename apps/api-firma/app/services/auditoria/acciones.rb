@@ -50,6 +50,8 @@ module Auditoria
     EMPRESA_TIPO_DOCUMENTO_HABILITAR = 'empresa.tipo_documento_habilitar'
     EMPRESA_TIPO_DOCUMENTO_ACTUALIZAR = 'empresa.tipo_documento_actualizar'
     EMPRESA_TIPO_DOCUMENTO_DESHABILITAR = 'empresa.tipo_documento_deshabilitar'
+    EMPRESA_LOGO_SUBIR = 'empresa.logo_subir'
+    EMPRESA_LOGO_ELIMINAR = 'empresa.logo_eliminar'
 
     CERTIFICADO_CREAR = 'certificado.crear'
     CERTIFICADO_ELIMINAR = 'certificado.eliminar'
@@ -112,6 +114,8 @@ module Auditoria
       EMPRESA_TIPO_DOCUMENTO_HABILITAR => 'Habilitó tipo de documento',
       EMPRESA_TIPO_DOCUMENTO_ACTUALIZAR => 'Actualizó habilitación de tipo de documento',
       EMPRESA_TIPO_DOCUMENTO_DESHABILITAR => 'Deshabilitó tipo de documento',
+      EMPRESA_LOGO_SUBIR => 'Subió logo de empresa',
+      EMPRESA_LOGO_ELIMINAR => 'Eliminó logo de empresa',
       CERTIFICADO_CREAR => 'Subió certificado digital',
       CERTIFICADO_ELIMINAR => 'Desactivó certificado digital',
       CERTIFICADO_REEMPLAZAR => 'Reemplazó certificado digital',

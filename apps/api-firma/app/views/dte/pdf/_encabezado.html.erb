@@ -1,5 +1,9 @@
 <div class="header">
-  <div class="logo">LOGO EMPRESA</div>
+  <div class="logo">
+    <% if presentacion[:logo_data_uri].present? %>
+      <img src="<%= presentacion[:logo_data_uri] %>" alt="" />
+    <% end %>
+  </div>
   <div class="dte">
     <h2><%= presentacion[:tipo_dte_nombre] %></h2>
     <p><b>Tipo DTE:</b> <%= presentacion[:tipo_dte] %></p>

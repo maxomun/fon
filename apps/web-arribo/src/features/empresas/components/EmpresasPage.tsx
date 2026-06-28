@@ -197,6 +197,11 @@ export function EmpresasPage() {
           error={formError}
           onSubmit={handleUpdate}
           onCancel={closeForm}
+          onLogoChange={(logo) =>
+            setSelectedEmpresa((current) =>
+              current ? { ...current, logo, archivo_logo: logo.filename ?? null } : current,
+            )
+          }
         />
       ) : null}
 
