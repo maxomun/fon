@@ -1,0 +1,31 @@
+<div class="box detalle-box">
+  <div class="section-title">DETALLE</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th class="right">Cant.</th>
+        <th>Unidad</th>
+        <th class="right">P. unit.</th>
+        <th class="right">Desc. %</th>
+        <th class="right">Rec.</th>
+        <th class="right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% presentacion[:lineas].each do |linea| %>
+        <tr>
+          <td><%= linea[:codigo] %></td>
+          <td><%= linea[:descripcion] %></td>
+          <td class="right"><%= linea[:cantidad] %></td>
+          <td><%= linea[:unidad] %></td>
+          <td class="right"><%= Dte::Pdf::Formateador.moneda(linea[:precio_unitario]) %></td>
+          <td class="right"><%= linea[:descuento_pct].positive? ? linea[:descuento_pct] : '—' %></td>
+          <td class="right"><%= linea[:recargo].positive? ? Dte::Pdf::Formateador.moneda(linea[:recargo]) : '—' %></td>
+          <td class="right"><%= Dte::Pdf::Formateador.moneda(linea[:total]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
+ActiveRecord::Schema[7.1].define(version: 2026_02_01_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -89,6 +89,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
   create_table "audit_events", comment: "Registro append-only de acciones críticas para auditoría.", force: :cascade do |t|
     t.string "accion", limit: 100, null: false, comment: "Código de acción, ej. auth.login_exitoso"
     t.string "categoria", limit: 50, null: false, comment: "Dominio: auth, usuarios, personas, empresa, certificados, folios, dte, catalogo"
@@ -114,7 +120,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.index ["created_at"], name: "idx_audit_events_created_at", order: :desc
     t.index ["empresa_id", "created_at"], name: "idx_audit_events_empresa_created_at", order: { created_at: :desc }, where: "(empresa_id IS NOT NULL)"
     t.index ["recurso_tipo", "recurso_id"], name: "idx_audit_events_recurso"
-    t.check_constraint "resultado::text = ANY (ARRAY['success'::character varying, 'failure'::character varying]::text[])", name: "chk_audit_events_resultado"
+    t.check_constraint "resultado::text = ANY (ARRAY['success'::character varying::text, 'failure'::character varying::text])", name: "chk_audit_events_resultado"
   end
 
   create_table "certificados", id: :serial, force: :cascade do |t|
@@ -142,14 +148,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["empresa_id", "rut"], name: "uq_clientes_rut_empresa"
   end
 
-  create_table "dte_envios", force: :cascade do |t|
-    t.integer "empresa_id", null: false
-    t.integer "usuario_id", null: false
-    t.datetime "created_at", precision: nil, default: -> { "now()" }, null: false
-    t.index ["empresa_id", "created_at"], name: "idx_dte_envios_empresa_created", order: { created_at: :desc }
+  create_table "documento_descuentos_recargos_globales", id: :serial, comment: "Descuentos/recargos globales DTE por documento emitido (SII DscRcgGlobal).", force: :cascade do |t|
+    t.integer "documento_emitido_id", null: false
+    t.integer "nro_linea", null: false
+    t.string "tipo_movimiento", limit: 1, null: false
+    t.string "glosa", limit: 250, null: false
+    t.string "tipo_valor", limit: 20, null: false
+    t.decimal "valor", precision: 15, scale: 4, null: false
+    t.string "aplica_sobre", limit: 30, null: false
+    t.integer "monto_calculado", null: false
+    t.integer "orden", null: false
+    t.index ["documento_emitido_id", "nro_linea"], name: "uq_doc_dr_globales_documento_nro_linea", unique: true
+    t.index ["documento_emitido_id"], name: "idx_doc_dr_globales_documento"
   end
 
-  create_table "documento_emitidos", id: :integer, default: nil, comment: "Documentos DTE, apunta a un documento en el sistema origen.", force: :cascade do |t|
+  create_table "documento_emitidos", id: :serial, comment: "Documentos DTE, apunta a un documento en el sistema origen.", force: :cascade do |t|
     t.integer "empresa_id", null: false, comment: "Codigo intenro de la empresa que emitio el documento (facturaon soporta asi multiples empresas)"
     t.integer "folio", null: false, comment: "Numero de folio del DTE"
     t.boolean "dte", null: false, comment: "Indica que el documento es emitido electronicamente, se agrega este campo para soportar migracion de datos de la empresa cuando no era emisor electronico."
@@ -171,25 +184,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.boolean "ingreso_autonomo", null: false, comment: "Indica si el documento se origina en el propio facturador."
     t.integer "referencia_id", null: false, comment: "PAra el caso de funcionamiento de facturaon integrado a otro sistema, relaciona el DTe al documento origen (el del sistema origen)."
     t.integer "asociado_id", comment: "Indica que el documento hace refencia a otro DTE (ejemplo: caso nota credito de factura)"
-    t.integer "dte_envio_id", comment: "Envío DTE (XML firmado en Active Storage) al que pertenece este folio."
-
+    t.integer "dte_envio_id"
     t.index ["dte_envio_id"], name: "idx_documento_emitidos_dte_envio"
     t.unique_constraint ["ruta_imagen"], name: "uq_ruta_imagen"
-  end
-
-  create_table "documento_descuentos_recargos_globales", force: :cascade do |t|
-    t.integer "documento_emitido_id", null: false, comment: "Documento al que pertenece el movimiento global."
-    t.integer "nro_linea", null: false, comment: "Correlativo 1-20 dentro del documento (NroLinDR)."
-    t.string "tipo_movimiento", limit: 1, null: false, comment: "D = descuento, R = recargo."
-    t.string "glosa", limit: 250, null: false, comment: "GlosaDR del movimiento."
-    t.string "tipo_valor", limit: 20, null: false, comment: "PORCENTAJE o MONTO."
-    t.decimal "valor", precision: 15, scale: 4, null: false, comment: "ValorDR (% o monto fijo)."
-    t.string "aplica_sobre", limit: 30, null: false, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE."
-    t.integer "monto_calculado", null: false, comment: "Monto aplicado sobre la base correspondiente."
-    t.integer "orden", null: false, comment: "Orden de aplicación en el documento."
-
-    t.index ["documento_emitido_id"], name: "idx_doc_dr_globales_documento"
-    t.unique_constraint ["documento_emitido_id", "nro_linea"], name: "uq_doc_dr_globales_documento_nro_linea"
   end
 
   create_table "documento_recibidos", id: :integer, default: nil, force: :cascade do |t|
@@ -204,6 +201,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.integer "user_id", comment: "En casos donde hay ingreso manual de una factura"
 
     t.unique_constraint ["proveedor_id", "tipo_documento_id", "folio"], name: "uq_documento_recibido"
+  end
+
+  create_table "dte_envios", id: :serial, force: :cascade do |t|
+    t.integer "empresa_id", null: false
+    t.integer "usuario_id", null: false
+    t.datetime "created_at", precision: nil, default: -> { "now()" }, null: false
+    t.index ["empresa_id", "created_at"], name: "idx_dte_envios_empresa_created", order: { created_at: :desc }
   end
 
   create_table "empresa_personas_autorizadas", id: :serial, comment: "Relacion N:M entre empresas y personas autorizadas para firmar.", force: :cascade do |t|
@@ -319,7 +323,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false, comment: "Alta del producto en el catálogo de la empresa."
     t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false, comment: "Última modificación de datos del producto (precio, nombre, impuestos, etc.)."
     t.boolean "activo", default: true, null: false, comment: "FALSE = no se ofrece en emisión; no borra historial de ventas."
-    t.string "ambito_monto", limit: 30, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE. NULL = derivar de impuestos."
+    t.string "ambito_monto", limit: 30, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE. NULL = derivar de impuestos del producto."
     t.index ["empresa_id", "activo"], name: "idx_productos_empresa_activo"
     t.index ["empresa_id", "codigo"], name: "idx_productos_empresa_codigo"
     t.index ["empresa_id"], name: "idx_productos_empresa_id"
@@ -431,36 +435,37 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["username"], name: "uq_usuarios_username"
   end
 
-  create_table "venta_detalles", id: :integer, default: nil, force: :cascade do |t|
+  create_table "venta_detalles", id: :serial, force: :cascade do |t|
     t.integer "documento_emitido_id", null: false
     t.string "item", limit: 250, null: false, comment: "Describe la entrada en el detalle de un DTE (corresponde al producto, servicio, etc..)"
     t.decimal "cantidad", precision: 10, scale: 2, null: false, comment: "Cantidad del item."
     t.decimal "descuento", precision: 10, scale: 2, default: "0.0", null: false, comment: "Descuento del item."
     t.decimal "precio_unitario", precision: 10, scale: 2, null: false, comment: "PRecio unitario"
     t.boolean "afecto", null: false, comment: "Indica si es afecto a impuesto."
-    t.string "ambito_monto", limit: 30, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE al emitir."
     t.decimal "impuesto", precision: 10, scale: 2, null: false, comment: "Porcentaje ( 0-99.99) de impuesto del afecto."
     t.integer "referencia_detalle_id", comment: "referencia al documento originado en sistema que alimenta al  FO"
     t.integer "producto_id", comment: "Indica el producto vendido, valido este campo para aquellos documentos emitidos en forma autonoma por facturaon (no integrado)"
+    t.string "ambito_monto", limit: 30, comment: "Clasificación SII del ítem al momento de la emisión."
   end
 
   add_foreign_key "acteco_empresas", "actecos", name: "fk_acteco_empresas_actecos"
   add_foreign_key "actecos", "grupo_actecos", name: "fk_actecos_grupo_actecos"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "audit_events", "empresas", name: "fk_audit_events_empresa", on_delete: :nullify
   add_foreign_key "audit_events", "users", column: "actor_user_id", name: "fk_audit_events_actor_user", on_delete: :nullify
   add_foreign_key "certificados", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_certificados_personas_autorizadas"
+  add_foreign_key "documento_descuentos_recargos_globales", "documento_emitidos", name: "fk_doc_dr_globales_documento_emitidos", on_delete: :cascade
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
-  add_foreign_key "documento_emitidos", "dte_envios", name: "fk_documento_emitidos_dte_envios"
+  add_foreign_key "documento_emitidos", "dte_envios", name: "documento_emitidos_dte_envio_id_fkey"
   add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
   add_foreign_key "documento_emitidos", "users", column: "usuario_id", name: "fk_documento_ventas_usuarios"
-  add_foreign_key "documento_descuentos_recargos_globales", "documento_emitidos", name: "fk_doc_dr_globales_documento_emitidos", on_delete: :cascade
-  add_foreign_key "dte_envios", "empresas", name: "fk_dte_envios_empresas"
-  add_foreign_key "dte_envios", "users", column: "usuario_id", name: "fk_dte_envios_users"
   add_foreign_key "documento_recibidos", "proveedores", name: "fk_documento_compras_proveedores"
   add_foreign_key "documento_recibidos", "tipo_documentos", name: "fk_documento_compras_tipo_documentos"
   add_foreign_key "documento_recibidos", "users", name: "fk_documento_compras_usuarios"
+  add_foreign_key "dte_envios", "empresas", name: "dte_envios_empresa_id_fkey"
+  add_foreign_key "dte_envios", "users", column: "usuario_id", name: "dte_envios_usuario_id_fkey"
   add_foreign_key "empresa_personas_autorizadas", "empresas", name: "fk_empresa_personas_autorizadas_empresas"
   add_foreign_key "empresa_personas_autorizadas", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_empresa_personas_autorizadas_personas"
   add_foreign_key "empresas", "paises", name: "fk_empresas_paises"

@@ -1,0 +1,10 @@
+<section class="cierre-documento">
+  <%= render 'dte/pdf/globales', presentacion: presentacion %>
+  <%= render 'dte/pdf/totales', presentacion: presentacion %>
+  <%= render 'dte/pdf/ted', presentacion: presentacion %>
+
+  <div class="footer">
+    <%= presentacion[:resolucion_timbre] %><br>
+    Verifique este documento en www.sii.cl
+  </div>
+</section>

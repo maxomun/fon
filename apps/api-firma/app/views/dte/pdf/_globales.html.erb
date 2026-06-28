@@ -1,0 +1,27 @@
+<% if presentacion[:globales].any? %>
+  <div class="box box-fija">
+    <div class="section-title">DESCUENTOS / RECARGOS GLOBALES</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Glosa</th>
+          <th>Valor</th>
+          <th>Ámbito</th>
+          <th class="right">Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% presentacion[:globales].each do |movimiento| %>
+          <tr>
+            <td><%= movimiento[:tipo] %></td>
+            <td><%= movimiento[:glosa] %></td>
+            <td><%= movimiento[:valor] %></td>
+            <td><%= movimiento[:aplica_sobre] %></td>
+            <td class="right"><%= Dte::Pdf::Formateador.moneda(movimiento[:monto]) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

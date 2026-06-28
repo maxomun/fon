@@ -595,6 +595,19 @@ module Api
           }, status: :internal_server_error
         end
 
+        resultado_pdfs = Dte::Pdf::GeneradorLote.call(documentos: resultado_persistencia[:documentos])
+
+        if resultado_pdfs[:fallos].any?
+          auditar_dte_fallo(
+            accion: Auditoria::Acciones::DTE_EMITIR,
+            empresa: resultado[:empresa],
+            mensaje: 'Emisión exitosa pero falló la generación de uno o más PDF',
+            metadata: metadata_dte_emision_completa(resultado, resultado_persistencia: resultado_persistencia)
+              .merge(fase: 'generacion_pdf', pdf_fallos: resultado_pdfs[:fallos]),
+            codigo_error: 'generacion_pdf'
+          )
+        end
+
         resultado_envio = enviar_al_sii_si_corresponde(resultado)
 
         limpiar_archivos_temporales_antiguos(60)
@@ -604,10 +617,15 @@ module Api
           accion: Auditoria::Acciones::DTE_EMITIR,
           empresa: resultado[:empresa],
           recurso: { tipo: 'DocumentoEmitido', id: doc_ids.first, label: etiqueta_recurso_dte(folios: resultado[:resultado_folios][:folios_usados]) },
-          metadata: metadata_dte_emision_completa(resultado, resultado_persistencia: resultado_persistencia, resultado_envio: resultado_envio)
+          metadata: metadata_dte_emision_completa(
+            resultado,
+            resultado_persistencia: resultado_persistencia,
+            resultado_envio: resultado_envio,
+            resultado_pdfs: resultado_pdfs
+          )
         )
 
-        render json: respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio),
+        render json: respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio, resultado_pdfs),
                status: :ok
       rescue StandardError => e
         auditar_dte_fallo(
@@ -776,10 +794,11 @@ module Api
         }
       end
 
-      def respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio)
+      def respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio, resultado_pdfs = nil)
         dte_envio = resultado_archivo[:dte_envio]
+        documentos = DocumentoEmitido.where(id: resultado_persistencia[:documentos].map(&:id))
 
-        {
+        respuesta = {
           success: true,
           message: mensaje_generar(resultado_envio),
           data: {
@@ -788,12 +807,19 @@ module Api
             xml_archivado: dte_envio.xml_firmado.attached?,
             total_documentos: resultado[:resultado_xml][:total_documentos],
             folios_usados: resultado[:resultado_folios][:folios_usados],
-            documentos_emitidos: resultado_persistencia[:documentos].map { |doc| documento_emitido_json(doc) },
+            documentos_emitidos: documentos.map { |doc| documento_emitido_json(doc) },
             envio_sii: resultado_envio_json(resultado_envio)
           },
           xml: resultado[:resultado_firma][:xml_firmado],
           resumen: resumen_emision(resultado)
         }
+
+        if resultado_pdfs&.dig(:fallos)&.any?
+          respuesta[:advertencia] = 'El DTE se emitió correctamente pero no se pudo generar el PDF de uno o más documentos'
+          respuesta[:data][:pdf_fallos] = resultado_pdfs[:fallos]
+        end
+
+        respuesta
       end
 
       def resumen_emision(resultado)
@@ -826,7 +852,8 @@ module Api
           tipo_documento: documento.tipo_documento_codigo,
           rut_receptor: documento.rut_receptor,
           razon_social_receptor: documento.razon_social_receptor,
-          dte_envio_id: documento.dte_envio_id
+          dte_envio_id: documento.dte_envio_id,
+          pdf_disponible: documento.pdf.attached?
         }
       end
 

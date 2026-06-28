@@ -67,7 +67,7 @@ module DteAuditable
     "DTE #{tipo} folio(s) #{folios_texto}"
   end
 
-  def metadata_dte_emision_completa(resultado, resultado_persistencia: nil, resultado_envio: nil)
+  def metadata_dte_emision_completa(resultado, resultado_persistencia: nil, resultado_envio: nil, resultado_pdfs: nil)
     metadata = metadata_dte_emision(
       empresa: resultado[:empresa],
       folios: resultado[:resultado_folios][:folios_usados],
@@ -79,6 +79,11 @@ module DteAuditable
 
     if resultado_persistencia
       metadata[:documento_emitido_ids] = resultado_persistencia[:documentos].map(&:id)
+    end
+
+    if resultado_pdfs
+      metadata[:pdf_generados] = resultado_pdfs[:generados]
+      metadata[:pdf_fallos] = resultado_pdfs[:fallos] if resultado_pdfs[:fallos].any?
     end
 
     if resultado_envio

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>DTE <%= presentacion[:tipo_dte] %> folio <%= presentacion[:folio] %></title>
+  <%= render 'dte/pdf/estilos' %>
+</head>
+<body>
+
+<%= render 'dte/pdf/encabezado_reducido', presentacion: presentacion %>
+
+<main class="documento-cuerpo">
+
+  <section class="primera-pagina">
+    <%= render 'dte/pdf/encabezado', presentacion: presentacion %>
+
+    <div class="box box-fija">
+      <div class="section-title">EMISOR</div>
+      Razón Social: <%= presentacion[:emisor][:razon_social] %><br>
+      RUT: <%= presentacion[:emisor][:rut] %><br>
+      Giro: <%= presentacion[:emisor][:giro] %><br>
+      Dirección: <%= presentacion[:emisor][:direccion] %>
+    </div>
+
+    <div class="box box-fija">
+      <div class="section-title">RECEPTOR</div>
+      Razón Social: <%= presentacion[:receptor][:razon_social] %><br>
+      RUT: <%= presentacion[:receptor][:rut] %><br>
+      Giro: <%= presentacion[:receptor][:giro] %><br>
+      Dirección: <%= presentacion[:receptor][:direccion] %>
+    </div>
+  </section>
+
+  <%= render 'dte/pdf/detalle', presentacion: presentacion %>
+  <%= render 'dte/pdf/cierre_documento', presentacion: presentacion %>
+
+</main>
+
+</body>
+</html>

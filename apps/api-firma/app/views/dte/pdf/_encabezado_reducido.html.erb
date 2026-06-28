@@ -1,0 +1,9 @@
+<div class="encabezado-fijo">
+  <strong><%= presentacion[:tipo_dte_nombre] %></strong>
+  &nbsp;|&nbsp; Folio <strong><%= presentacion[:folio] %></strong>
+  &nbsp;|&nbsp; <%= presentacion[:fecha_emision] %>
+  &nbsp;|&nbsp; Emisor: <%= presentacion[:emisor][:rut] %>
+  — <%= presentacion[:emisor][:razon_social].to_s.truncate(28) %>
+  &nbsp;|&nbsp; Receptor: <%= presentacion[:receptor][:rut] %>
+  — <%= presentacion[:receptor][:razon_social].to_s.truncate(28) %>
+</div>

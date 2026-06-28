@@ -27,6 +27,7 @@ module Dte
         documentos.each do |documento|
           folio_liberado = liberar_folio(documento)
           folios_liberados << folio_liberado if folio_liberado
+          eliminar_pdf(documento)
           documento.destroy!
         end
 
@@ -100,6 +101,13 @@ module Dte
 
       folio.liberar_uso!
       documento.folio
+    end
+
+    def eliminar_pdf(documento)
+      return unless documento.pdf.attached?
+
+      ActiveStorage::EliminadorSinPurge.call(record: documento, name: :pdf)
+      documento.reload
     end
   end
 end

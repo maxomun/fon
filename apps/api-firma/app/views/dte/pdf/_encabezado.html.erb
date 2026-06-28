@@ -1,0 +1,12 @@
+<div class="header">
+  <div class="logo">LOGO EMPRESA</div>
+  <div class="dte">
+    <h2><%= presentacion[:tipo_dte_nombre] %></h2>
+    <p><b>Tipo DTE:</b> <%= presentacion[:tipo_dte] %></p>
+    <p><b>Folio:</b> <%= presentacion[:folio] %></p>
+    <% if presentacion[:sucursal].present? %>
+      <p><b>Sucursal:</b> <%= presentacion[:sucursal] %></p>
+    <% end %>
+    <p><b>Fecha:</b> <%= presentacion[:fecha_emision] %></p>
+  </div>
+</div>

@@ -10,7 +10,7 @@ module Api
 
       before_action :set_empresa
       before_action :require_empresa_vinculada!
-      before_action :set_documento, only: [:show]
+      before_action :set_documento, only: [:show, :pdf]
 
       def index
         scope = documentos_scope
@@ -27,6 +27,24 @@ module Api
         render_success(data: documento_emitido_detail_payload(@documento))
       end
 
+      def pdf
+        force = ActiveModel::Type::Boolean.new.cast(params[:force])
+        resultado = Dte::Pdf::Generador.call(documento: @documento, force: force)
+
+        unless resultado[:success]
+          return render_error(resultado[:error], :unprocessable_entity, code: resultado[:code])
+        end
+
+        @documento.reload
+        filename = Dte::Pdf::NombreArchivo.for(documento: @documento)
+        response.headers['X-Download-Filename'] = filename
+
+        send_data @documento.pdf.download,
+                  filename: filename,
+                  type: 'application/pdf',
+                  disposition: 'attachment'
+      end
+
       private
 
       def set_empresa
@@ -36,7 +54,7 @@ module Api
       def set_documento
         @documento = @empresa.documento_emitidos
                              .dte
-                             .includes(:usuario, :dte_envio, :documento_descuentos_recargos_globales,
+                             .includes(:usuario, :dte_envio, :empresa, :documento_descuentos_recargos_globales,
                                        tipo_habilitado: :tipo_documento, venta_detalles: :producto)
                              .find(params[:id])
       end

@@ -39,7 +39,9 @@ export function EmpresaDocumentosPage() {
     openDetalle,
     closeDetalle,
     downloadXml,
+    downloadPdf,
     downloadingEnvioId,
+    downloadingPdfDocumentoId,
     downloadError,
     limpiarEnvio,
     limpiarTodosEnvios,
@@ -185,9 +187,11 @@ export function EmpresaDocumentosPage() {
         isLoading={isDetalleLoading}
         error={detalleError}
         downloadingEnvioId={downloadingEnvioId}
+        downloadingPdfDocumentoId={downloadingPdfDocumentoId}
         limpiandoEnvioId={limpiandoEnvioId}
         isFonAdmin={isFonAdmin}
         onClose={closeDetalle}
+        onDownloadPdf={(documento) => void downloadPdf(documento)}
         onDownloadXml={(documento) =>
           void downloadXml(documento.dte_envio_id!, {
             tipo_documento: documento.tipo_documento,

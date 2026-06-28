@@ -14,10 +14,12 @@ interface DocumentoDetalleModalProps {
   isLoading: boolean
   error: string | null
   downloadingEnvioId: number | null
+  downloadingPdfDocumentoId: number | null
   limpiandoEnvioId: number | null
   isFonAdmin?: boolean
   onClose: () => void
   onDownloadXml: (documento: DocumentoEmitidoDetail) => void
+  onDownloadPdf: (documento: DocumentoEmitidoDetail) => void
   onLimpiarEnvio: (dteEnvioId: number) => void
 }
 
@@ -27,10 +29,12 @@ export function DocumentoDetalleModal({
   isLoading,
   error,
   downloadingEnvioId,
+  downloadingPdfDocumentoId,
   limpiandoEnvioId,
   isFonAdmin = false,
   onClose,
   onDownloadXml,
+  onDownloadPdf,
   onLimpiarEnvio,
 }: DocumentoDetalleModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -66,7 +70,7 @@ export function DocumentoDetalleModal({
   return createPortal(
     <div className="modal-overlay" onClick={handleBackdropClick}>
       <div
-        className="modal-dialog modal-dialog--form"
+        className="modal-dialog modal-dialog--form modal-dialog--documento"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -150,7 +154,15 @@ export function DocumentoDetalleModal({
               </div>
             ) : null}
 
-            <div className="modal-dialog__actions">
+            <div className="modal-dialog__actions modal-dialog__actions--wrap">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={downloadingPdfDocumentoId === documento.id}
+                onClick={() => onDownloadPdf(documento)}
+              >
+                {downloadingPdfDocumentoId === documento.id ? 'Generando PDF…' : 'Descargar PDF'}
+              </Button>
               {documento.xml_disponible && documento.dte_envio_id ? (
                 <Button
                   type="button"

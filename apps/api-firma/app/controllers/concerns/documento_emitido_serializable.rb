@@ -16,6 +16,7 @@ module DocumentoEmitidoSerializable
       total: format('%.2f', documento.total),
       dte_envio_id: documento.dte_envio_id,
       xml_disponible: documento.dte_envio&.xml_firmado&.attached? || false,
+      pdf_disponible: documento.pdf.attached?,
       emitido_at: documento.dte_envio&.created_at&.iso8601,
       usuario_email: documento.usuario&.email
     }

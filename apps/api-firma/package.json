@@ -1,0 +1,9 @@
+{
+  "name": "api-firma",
+  "private": true,
+  "description": "Dependencias Node para Grover (HTML → PDF DTE)",
+  "dependencies": {
+    "bwip-js": "^4.5.1",
+    "puppeteer": "^24.2.0"
+  }
+}

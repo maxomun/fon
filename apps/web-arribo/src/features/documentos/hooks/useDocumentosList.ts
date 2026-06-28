@@ -21,6 +21,7 @@ export function useDocumentosList(empresaId: number) {
   const [detalleError, setDetalleError] = useState<string | null>(null)
 
   const [downloadingEnvioId, setDownloadingEnvioId] = useState<number | null>(null)
+  const [downloadingPdfDocumentoId, setDownloadingPdfDocumentoId] = useState<number | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
   const [limpiandoEnvioId, setLimpiandoEnvioId] = useState<number | null>(null)
@@ -107,6 +108,29 @@ export function useDocumentosList(empresaId: number) {
     }
   }
 
+  async function downloadPdf(documento: DocumentoEmitidoDetail) {
+    setDownloadError(null)
+    setDownloadingPdfDocumentoId(documento.id)
+
+    try {
+      await documentosService.downloadPdf(empresaId, documento.id, {
+        id: documento.id,
+        tipo_documento: documento.tipo_documento,
+        folio: documento.folio,
+        rut_emisor: documento.rut_emisor,
+      })
+      if (!documento.pdf_disponible) {
+        setDetalleDocumento({ ...documento, pdf_disponible: true })
+      }
+    } catch (error) {
+      setDownloadError(
+        error instanceof ApiError ? error.message : 'No se pudo descargar el PDF',
+      )
+    } finally {
+      setDownloadingPdfDocumentoId(null)
+    }
+  }
+
   async function limpiarEnvio(dteEnvioId: number) {
     setLimpiezaError(null)
     setLimpiezaMensaje(null)
@@ -164,7 +188,9 @@ export function useDocumentosList(empresaId: number) {
     openDetalle,
     closeDetalle,
     downloadXml,
+    downloadPdf,
     downloadingEnvioId,
+    downloadingPdfDocumentoId,
     downloadError,
     limpiarEnvio,
     limpiarTodosEnvios,

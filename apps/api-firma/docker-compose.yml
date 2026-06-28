@@ -11,6 +11,10 @@ services:
     networks:
       - fon-net
     environment:
+      GROVER_NO_SANDBOX: "true"
+      GROVER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
       RAILS_ENV: ${RAILS_ENV:-development}
       RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-5}
       # PostgreSQL local: fon-postgres (apps/db) o remoto vía .env

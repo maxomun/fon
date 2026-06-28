@@ -1,0 +1,27 @@
+<div class="box box-fija">
+  <div class="section-title">TOTALES</div>
+  <table>
+    <% if presentacion[:totales][:neto_afecto].positive? %>
+      <tr>
+        <td>Neto afecto</td>
+        <td class="right"><%= Dte::Pdf::Formateador.moneda(presentacion[:totales][:neto_afecto]) %></td>
+      </tr>
+    <% end %>
+    <% if presentacion[:totales][:neto_exento].positive? %>
+      <tr>
+        <td>Exento / No afecto</td>
+        <td class="right"><%= Dte::Pdf::Formateador.moneda(presentacion[:totales][:neto_exento]) %></td>
+      </tr>
+    <% end %>
+    <% if presentacion[:totales][:iva].positive? %>
+      <tr>
+        <td>IVA</td>
+        <td class="right"><%= Dte::Pdf::Formateador.moneda(presentacion[:totales][:iva]) %></td>
+      </tr>
+    <% end %>
+    <tr>
+      <td><b>TOTAL</b></td>
+      <td class="right"><b><%= Dte::Pdf::Formateador.moneda(presentacion[:totales][:total]) %></b></td>
+    </tr>
+  </table>
+</div>

@@ -1,0 +1,14 @@
+<div class="box box-fija ted-box">
+  <div class="section-title">TED / TIMBRE ELECTRÓNICO</div>
+  <div class="ted">
+    <% if presentacion[:ted_placeholder] %>
+      <p class="empty-note">
+        Timbre electrónico no disponible.<br>
+        El documento tributario oficial es el XML firmado.
+      </p>
+    <% else %>
+      <img src="<%= presentacion[:ted_imagen_data_uri] %>" alt="TED PDF417" class="ted-barcode">
+    <% end %>
+  </div>
+  <p class="ted-legal">Timbre Electrónico SII</p>
+</div>

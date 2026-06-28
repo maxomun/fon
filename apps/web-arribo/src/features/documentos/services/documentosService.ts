@@ -6,7 +6,7 @@ import type {
   LimpiarEnvioResponse,
   LimpiarTodosEnviosResponse,
 } from '@/features/documentos/types/documentoEmitido.types'
-import { buildXmlDownloadFilename } from '@/features/documentos/types/documentoEmitido.types'
+import { buildPdfDownloadFilename, buildXmlDownloadFilename } from '@/features/documentos/types/documentoEmitido.types'
 
 function baseUrl(empresaId: number) {
   return `/api/v1/empresas/${empresaId}/documentos_emitidos`
@@ -63,6 +63,24 @@ export const documentosService = {
 
     const { blob, filename } = await authenticatedClient.download(
       `${dteEnviosBaseUrl(empresaId)}/${dteEnvioId}/xml`,
+      { fallbackFilename },
+    )
+    triggerDownload(blob, filename)
+  },
+
+  async downloadPdf(
+    empresaId: number,
+    documentoId: number,
+    context?: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'folio' | 'id'> & {
+      rut_emisor?: string
+    },
+  ) {
+    const fallbackFilename = context
+      ? buildPdfDownloadFilename(context, context.rut_emisor)
+      : undefined
+
+    const { blob, filename } = await authenticatedClient.download(
+      `${baseUrl(empresaId)}/${documentoId}/pdf`,
       { fallbackFilename },
     )
     triggerDownload(blob, filename)

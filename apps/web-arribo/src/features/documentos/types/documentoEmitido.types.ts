@@ -8,6 +8,7 @@ export interface DocumentoEmitidoSummary {
   total: string
   dte_envio_id: number | null
   xml_disponible: boolean
+  pdf_disponible: boolean
   emitido_at: string | null
   usuario_email: string | null
 }
@@ -106,6 +107,15 @@ export function formatDocumentoMonto(valor: string) {
 
 export function documentoTipoLabel(documento: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'tipo_documento_nombre'>) {
   return `${documento.tipo_documento} — ${documento.tipo_documento_nombre}`
+}
+
+export function buildPdfDownloadFilename(
+  documento: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'folio' | 'id'>,
+  rutEmisor?: string,
+) {
+  const rut = (rutEmisor ?? 'emisor').replace(/[.\s]/g, '')
+  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  return `dte_${documento.tipo_documento}_folio_${documento.folio}_${rut}_${fecha}.pdf`
 }
 
 export function buildXmlDownloadFilename(

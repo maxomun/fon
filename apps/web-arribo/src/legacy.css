@@ -685,6 +685,10 @@ p {
   max-width: 560px;
 }
 
+.modal-dialog--documento {
+  max-width: min(92vw, 640px);
+}
+
 .modal-dialog__title {
   margin-bottom: 0.75rem;
   font-size: 1.25rem;
@@ -719,6 +723,17 @@ p {
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.5rem;
+}
+
+/* Varios botones en modales estrechos: evita desborde horizontal (flex-end + nowrap) */
+.modal-dialog__actions--wrap {
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.modal-dialog__actions--wrap > * {
+  width: auto;
+  max-width: 100%;
 }
 
 .btn-danger {

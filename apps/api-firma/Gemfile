@@ -42,6 +42,7 @@ gem "rack-cors"
 gem "nokogiri"      # Manipulación de XML
 gem "matrix"        # Requerido por Prawn en Ruby 3.1+
 gem "prawn"         # Generación de PDF (usado para paginación de items)
+gem "grover"        # HTML → PDF (representación tributaria DTE)
 gem "rest-client"   # Cliente HTTP para envío al SII
 
 group :development, :test do

@@ -84,7 +84,11 @@ Rails.application.routes.draw do
         end
         resources :documentos_emitidos,
                   only: [:index, :show],
-                  controller: 'empresa_documentos_emitidos'
+                  controller: 'empresa_documentos_emitidos' do
+          member do
+            get :pdf
+          end
+        end
         resources :dte_envios,
                   only: [],
                   controller: 'empresa_dte_envios' do

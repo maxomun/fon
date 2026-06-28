@@ -11,22 +11,9 @@ module Dte
       new(**params).call
     end
 
-    # Elimina el XML sin usar purge (evita active_storage_variant_records, no usada aquí).
+    # Elimina el XML sin encolar PurgeJob (evita dependencia de variant_records).
     def self.eliminar_adjunto(dte_envio)
-      attachment = ActiveStorage::Attachment.find_by(
-        record_type: dte_envio.class.name,
-        record_id: dte_envio.id,
-        name: ATTACHMENT_NAME
-      )
-      return unless attachment
-
-      blob = attachment.blob
-      attachment.delete
-
-      return if ActiveStorage::Attachment.exists?(blob_id: blob.id)
-
-      blob.service.delete(blob.key)
-      ActiveStorage::Blob.where(id: blob.id).delete_all
+      ActiveStorage::EliminadorSinPurge.call(record: dte_envio, name: ATTACHMENT_NAME)
     end
 
     def initialize(empresa:, usuario:, tipo_documento:, xml_firmado:, documentos:, folios:)
