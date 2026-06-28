@@ -4,6 +4,7 @@ import { Button, Checkbox, Input } from '@/components/ui'
 import type { Producto, ProductoImpuesto, ProductoInput } from '@/features/productos/types/producto.types'
 import {
   emptyProductoInput,
+  PRODUCTO_AMBITO_OPCIONES,
   productoToInput,
 } from '@/features/productos/types/producto.types'
 
@@ -148,9 +149,37 @@ export function ProductoFormModal(props: ProductoFormModalProps) {
           />
 
           <fieldset className="producto-form__impuestos">
+            <legend>Clasificación al emitir</legend>
+            <label className="input-field" htmlFor="ambito_monto">
+              <span className="input-field__label">Ámbito del monto</span>
+              <select
+                id="ambito_monto"
+                name="ambito_monto"
+                className="input-field__control"
+                value={values.ambito_monto}
+                disabled={isLoading}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, ambito_monto: event.target.value }))
+                }
+              >
+                {PRODUCTO_AMBITO_OPCIONES.map((opcion) => (
+                  <option key={opcion.value || 'auto'} value={opcion.value}>
+                    {opcion.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="producto-form__hint">
+              Automático: con impuestos → afecto; sin impuestos → exento. Use «No facturable» solo si
+              aplica al caso de negocio (sin impuestos).
+            </p>
+          </fieldset>
+
+          <fieldset className="producto-form__impuestos">
             <legend>Impuestos</legend>
             <p className="producto-form__hint">
-              Sin impuestos seleccionados el producto se trata como exento al emitir.
+              Sin impuestos seleccionados el producto se trata como exento al emitir (salvo clasificación
+              explícita).
             </p>
             {impuestosDisponibles.length === 0 ? (
               <p className="page-empty">No hay impuestos configurados para el país de la empresa.</p>

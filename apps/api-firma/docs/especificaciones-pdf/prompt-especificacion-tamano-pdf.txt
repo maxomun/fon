@@ -1,0 +1,172 @@
+PROMPT TÉCNICO – ESPECIFICACIÓN DEL TAMAÑO Y FORMATO DEL PDF DTE
+
+OBJETIVO
+
+Definir las reglas funcionales que debe cumplir la representación PDF de
+un DTE respecto al tamaño de página y presentación impresa.
+
+No imponer una tecnología específica. El agente programador deberá
+seleccionar la mejor implementación.
+
+================================================================== 1.
+REGLA GENERAL
+==================================================================
+
+El PDF NO forma parte del documento enviado al SII.
+
+El documento oficial es el XML firmado.
+
+El PDF es únicamente una representación visual del DTE.
+
+Por lo tanto, el tamaño del PDF no afecta la aceptación del DTE por
+parte del SII.
+
+================================================================== 2.
+REQUISITOS DEL SII
+==================================================================
+
+El SII no obliga a utilizar un tamaño de papel específico como:
+
+-   A4
+-   Carta
+-   Oficio
+
+Lo que exige es que la representación impresa sea legible y contenga
+toda la información obligatoria del DTE.
+
+Debe visualizar correctamente:
+
+-   Emisor
+-   Receptor
+-   Detalle
+-   Totales
+-   Referencias (cuando existan)
+-   TED (Timbre Electrónico)
+-   Texto legal correspondiente
+
+================================================================== 3.
+TED ==================================================================
+
+El Timbre Electrónico (PDF417) debe mantener un tamaño suficiente para
+permitir su lectura.
+
+Como referencia de las instrucciones del SII:
+
+-   alto aproximado mínimo: 2 cm
+-   ancho aproximado mínimo: 4,5 cm
+
+El diseño nunca debe reducir el TED hasta un tamaño que comprometa su
+legibilidad.
+
+================================================================== 4.
+FORMATO RECOMENDADO
+==================================================================
+
+Para FacturaOn se recomienda definir dos plantillas principales.
+
+Plantilla 1
+
+Formato:
+
+A4 Vertical
+
+Dimensiones:
+
+210 mm x 297 mm
+
+Utilizar para:
+
+-   Factura Electrónica (33)
+-   Factura Exenta (34)
+-   Guía de Despacho (52)
+-   Nota de Débito (56)
+-   Nota de Crédito (61)
+
+Este será el formato por defecto.
+
+Plantilla 2
+
+Formato:
+
+Ticket térmico
+
+Ancho recomendado:
+
+80 mm
+
+Compatibilidad opcional:
+
+57 mm cuando el cliente utilice impresoras POS compatibles.
+
+Utilizar para:
+
+-   Boleta Electrónica (39)
+-   Boleta Exenta (41)
+
+================================================================== 5.
+MÚLTIPLES PÁGINAS
+==================================================================
+
+El sistema debe soportar documentos de cualquier longitud.
+
+Cuando un DTE ocupe más de una página:
+
+-   repetir encabezado reducido
+-   repetir títulos de columnas
+-   mantener continuidad del detalle
+-   mostrar los totales únicamente en la última página
+-   mostrar el TED únicamente en la última página
+
+================================================================== 6.
+MÁRGENES
+==================================================================
+
+Los márgenes deben permitir impresión sin pérdida de información.
+
+Evitar colocar información crítica demasiado cerca de los bordes.
+
+================================================================== 7.
+ESCALABILIDAD
+==================================================================
+
+El diseño debe permitir personalización sin modificar la estructura
+tributaria.
+
+Ejemplos:
+
+-   logo empresa
+-   colores corporativos
+-   pie comercial
+-   datos adicionales
+
+La personalización nunca debe ocultar información obligatoria.
+
+================================================================== 8.
+DISEÑO
+==================================================================
+
+Se recomienda un diseño sobrio.
+
+No utilizar:
+
+-   fondos oscuros
+-   marcas de agua que dificulten lectura
+-   tipografías decorativas
+-   colores que reduzcan contraste
+
+Priorizar legibilidad e impresión.
+
+================================================================== 9.
+CRITERIOS DE ACEPTACIÓN
+==================================================================
+
+La implementación será considerada correcta cuando:
+
+-   exista un formato A4 completamente funcional
+-   exista un formato Ticket preparado para boletas
+-   el TED conserve un tamaño legible
+-   todos los datos tributarios sean visibles
+-   el PDF pueda imprimirse sin pérdida de información
+-   documentos multipágina mantengan consistencia visual
+-   el diseño sea independiente de la tecnología utilizada para generar
+    el PDF

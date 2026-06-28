@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Plantilla DTE PDF</title>
+<style>
+body{font-family:Arial,sans-serif;margin:30px;color:#222}
+h1,h2{margin:0}
+.box{border:1px solid #444;padding:10px;margin-bottom:12px}
+.header{display:flex;justify-content:space-between}
+.logo{width:180px;height:60px;border:1px dashed #888;display:flex;align-items:center;justify-content:center}
+.dte{width:250px;border:2px solid #000;padding:8px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{border:1px solid #999;padding:6px;font-size:12px}
+th{background:#eee}
+.right{text-align:right}
+.section-title{font-weight:bold;margin-bottom:6px}
+.footer{font-size:11px;margin-top:18px}
+.ted{height:140px;border:1px dashed #666;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">LOGO EMPRESA</div>
+  <div class="dte">
+    <h2>FACTURA ELECTRÓNICA</h2>
+    <p><b>Tipo DTE:</b> {{TIPO_DTE}}</p>
+    <p><b>Folio:</b> {{FOLIO}}</p>
+    <p><b>Sucursal:</b> {{SUCURSAL}}</p>
+    <p><b>Fecha:</b> {{FECHA}}</p>
+  </div>
+</div>
+
+<div class="box">
+<div class="section-title">EMISOR</div>
+Razón Social: {{RAZON_SOCIAL}}<br>
+RUT: {{RUT}}<br>
+Giro: {{GIRO}}<br>
+Dirección: {{DIRECCION}}<br>
+Comuna/Ciudad: {{COMUNA}} / {{CIUDAD}}
+</div>
+
+<div class="box">
+<div class="section-title">RECEPTOR</div>
+Razón Social: {{CLIENTE}}<br>
+RUT: {{RUT_CLIENTE}}<br>
+Giro: {{GIRO_CLIENTE}}<br>
+Dirección: {{DIR_CLIENTE}}
+</div>
+
+<div class="box">
+<div class="section-title">DETALLE</div>
+<table>
+<tr>
+<th>Código</th><th>Descripción</th><th>Cant.</th><th>Unidad</th>
+<th>P.Unit.</th><th>Desc.</th><th>Rec.</th><th>Total</th>
+</tr>
+<tr><td colspan="8" style="height:120px;text-align:center">Filas de productos...</td></tr>
+</table>
+</div>
+
+<div class="box">
+<div class="section-title">DESCUENTOS / RECARGOS GLOBALES</div>
+<table>
+<tr><th>Tipo</th><th>Glosa</th><th>Valor</th><th>Monto</th></tr>
+<tr><td colspan="4" style="height:50px;text-align:center">Movimientos globales...</td></tr>
+</table>
+</div>
+
+<div class="box">
+<div class="section-title">REFERENCIAS</div>
+<table>
+<tr><th>Tipo</th><th>Folio</th><th>Fecha</th><th>Motivo</th></tr>
+<tr><td colspan="4" style="height:40px;text-align:center">Referencias...</td></tr>
+</table>
+</div>
+
+<div class="box">
+<div class="section-title">TOTALES</div>
+<table>
+<tr><td>Neto</td><td class="right">{{NETO}}</td></tr>
+<tr><td>Exento</td><td class="right">{{EXENTO}}</td></tr>
+<tr><td>IVA</td><td class="right">{{IVA}}</td></tr>
+<tr><td><b>TOTAL</b></td><td class="right"><b>{{TOTAL}}</b></td></tr>
+</table>
+</div>
+
+<div class="box">
+<div class="section-title">TED / TIMBRE ELECTRÓNICO</div>
+<div class="ted">PDF417 / TED</div>
+</div>
+
+<div class="footer">
+Resolución SII correspondiente.<br>
+Verifique este documento en www.sii.cl
+</div>
+
+</body>
+</html>

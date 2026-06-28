@@ -1,0 +1,387 @@
+Prompt técnico — Generación de PDF para DTE (FacturaOn)
+
+Objetivo
+
+Implementar el módulo de generación de PDF para Documentos Tributarios
+Electrónicos (DTE) del facturador FacturaOn, asegurando que el PDF sea
+una representación fiel del DTE emitido y firmado, manteniendo
+consistencia con el XML enviado al SII.
+
+------------------------------------------------------------------------
+
+Principios de diseño
+
+-   El XML del DTE es el documento tributario oficial.
+-   El PDF es únicamente una representación visual.
+-   El PDF nunca debe recalcular montos.
+-   Debe generarse desde los datos finales del DTE.
+-   Debe existir un PDF por cada DTE.
+
+------------------------------------------------------------------------
+
+Arquitectura
+
+Existen tres conceptos independientes:
+
+1.  DTE (documento individual)
+2.  EnvioDTE (sobre XML que agrupa uno o más DTE)
+3.  PDF (representación de un único DTE)
+
+Un EnvioDTE puede contener múltiples DTE.
+
+Cada DTE debe tener:
+
+-   XML individual
+-   PDF individual
+-   Estado individual
+-   TED individual
+
+El EnvioDTE solamente debe almacenar:
+
+-   XML del envío
+-   TrackID
+-   Estado del envío
+-   Relación con los DTE enviados
+
+Nunca generar un PDF del EnvioDTE.
+
+------------------------------------------------------------------------
+
+Flujo recomendado
+
+Crear DTE ↓ Calcular líneas ↓ Aplicar descuentos y recargos por línea ↓
+Aplicar descuentos y recargos globales ↓ Calcular totales ↓ Generar XML
+individual ↓ Firmar XML ↓ Guardar XML individual ↓ Asociar al EnvioDTE ↓
+Generar XML del envío ↓ Enviar al SII ↓ Guardar TrackID ↓ Generar PDF
+individual ↓ Guardar PDF
+
+------------------------------------------------------------------------
+
+Fuente de verdad
+
+El PDF debe utilizar exactamente los datos del DTE emitido:
+
+-   Folio
+-   Tipo DTE
+-   Fecha
+-   Emisor
+-   Receptor
+-   Detalles
+-   Referencias
+-   Descuentos por línea
+-   Recargos por línea
+-   Descuentos globales
+-   Recargos globales
+-   Totales
+-   TED
+
+No recalcular valores.
+
+------------------------------------------------------------------------
+
+Persistencia
+
+DTE
+
+-   XML individual
+-   PDF individual
+-   TED
+-   Estado
+-   Folio
+
+EnvioDTE
+
+-   XML del envío
+-   TrackID
+-   Estado del envío
+
+------------------------------------------------------------------------
+
+Nombre de archivos
+
+XML:
+
+DTE_.xml
+
+PDF:
+
+DTE_.pdf
+
+Envío:
+
+ENVIO_DTE_.xml
+
+------------------------------------------------------------------------
+
+Servicio Rails
+
+app/services/dtes/pdf_generator.rb
+
+Responsabilidad:
+
+Dtes::PdfGenerator.call(dte, force: false)
+
+Debe:
+
+-   validar XML
+-   validar folio
+-   validar totales
+-   generar PDF
+-   guardar archivo
+-   asociarlo al DTE
+
+Para un envío completo:
+
+EnviosDte::PdfBatchGenerator.call(envio)
+
+Debe recorrer todos los DTE y generar un PDF por cada uno.
+
+------------------------------------------------------------------------
+
+Diseño recomendado
+
+No existe un formato gráfico obligatorio por parte del SII.
+
+Se recomienda un diseño sobrio, similar al utilizado por los ERP
+chilenos.
+
+Encabezado
+
+-   Logo
+-   Razón social
+-   RUT
+-   Giro
+-   Dirección
+-   Comuna
+-   Ciudad
+
+Caja destacada:
+
+-   Tipo de documento
+-   Folio
+-   Sucursal
+-   Fecha
+
+Receptor
+
+-   RUT
+-   Razón social
+-   Giro
+-   Dirección
+-   Comuna
+-   Ciudad
+
+Detalle
+
+Columnas sugeridas:
+
+-   Código
+-   Descripción
+-   Cantidad
+-   Unidad
+-   Precio unitario
+-   Descuento
+-   Recargo
+-   Total
+
+Descuentos globales
+
+Mostrar una sección independiente.
+
+Nunca ocultarlos modificando los precios de las líneas.
+
+Recargos globales
+
+Mostrar una sección independiente.
+
+Totales
+
+Mostrar claramente:
+
+-   Neto
+-   Exento / No afecto
+-   IVA
+-   Otros impuestos
+-   Total
+
+TED
+
+Debe incorporarse el TED y el timbre electrónico junto con el texto
+legal del SII.
+
+Referencias
+
+Cuando existan:
+
+-   Tipo documento
+-   Folio
+-   Fecha
+-   Motivo
+
+Observaciones
+
+Zona libre para:
+
+-   Forma de pago
+-   Orden de compra
+-   Proyecto
+-   Centro de costo
+-   Observaciones
+
+------------------------------------------------------------------------
+
+Soporte multipágina
+
+Facturas extensas deben:
+
+-   repetir encabezado reducido
+-   repetir títulos de columnas
+-   mostrar totales únicamente en la última página
+
+------------------------------------------------------------------------
+
+Descuentos y recargos
+
+El PDF debe reflejar exactamente:
+
+Por línea
+
+-   descuentos
+-   recargos
+
+Globales
+
+Mostrar los movimientos definidos en DscRcgGlobal.
+
+Nunca absorberlos dentro del precio del producto.
+
+------------------------------------------------------------------------
+
+Tipos de montos
+
+Soportar:
+
+-   afectos
+-   exentos / no afectos
+-   no facturables
+
+Mostrar correctamente:
+
+-   Neto
+-   Exento
+-   IVA
+-   Total
+
+------------------------------------------------------------------------
+
+Implementación recomendada
+
+Utilizar HTML + CSS como plantilla y convertir a PDF.
+
+Ventajas:
+
+-   reutilizable para vista previa
+-   reutilizable para impresión
+-   fácil mantenimiento
+-   personalización por empresa
+
+Evaluar:
+
+-   Grover (Chromium)
+-   WickedPDF
+-   Prawn solamente si se desea PDF completamente programático.
+
+------------------------------------------------------------------------
+
+Endpoints
+
+GET /api/v1/dtes/:id/pdf
+
+POST /api/v1/dtes/:id/generar_pdf
+
+POST /api/v1/envios_dte/:id/generar_pdfs
+
+------------------------------------------------------------------------
+
+Idempotencia
+
+Si existe PDF:
+
+force=false
+
+→ devolver existente.
+
+force=true
+
+→ regenerar.
+
+Registrar auditoría.
+
+------------------------------------------------------------------------
+
+Auditoría
+
+Guardar:
+
+-   fecha generación
+-   usuario
+-   fecha regeneración
+-   usuario regeneración
+-   motivo
+-   checksum opcional
+
+------------------------------------------------------------------------
+
+Validaciones
+
+Antes de generar:
+
+-   XML existe
+-   folio existe
+-   emisor
+-   receptor
+-   detalle
+-   TED
+-   totales
+-   consistencia de montos
+
+------------------------------------------------------------------------
+
+Pruebas
+
+Implementar tests para:
+
+-   DTE afecto
+-   Exento
+-   Mixto
+-   Descuento línea
+-   Descuento global
+-   Recargo global
+-   Descuento línea + global
+-   Varios DTE en un envío
+-   Regeneración
+-   Multipágina
+
+------------------------------------------------------------------------
+
+Criterio final
+
+El PDF pertenece al DTE.
+
+Nunca al EnvioDTE.
+
+Cada DTE conserva:
+
+-   XML individual
+-   PDF individual
+-   TED
+-   Estado
+
+El EnvioDTE conserva:
+
+-   XML del envío
+-   TrackID
+-   Estado
+
+El PDF debe ser una representación fiel del DTE emitido y nunca una
+fuente independiente de cálculo.

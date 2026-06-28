@@ -8,6 +8,7 @@ interface EmisionWizardStickyFooterProps {
   cantidadItems: number
   isSubmitting: boolean
   canEmit: boolean
+  totalesCalculando?: boolean
 }
 
 export function EmisionWizardStickyFooter({
@@ -15,6 +16,7 @@ export function EmisionWizardStickyFooter({
   cantidadItems,
   isSubmitting,
   canEmit,
+  totalesCalculando = false,
 }: EmisionWizardStickyFooterProps) {
   return (
     <footer className="emision-wizard__sticky-footer">
@@ -28,10 +30,18 @@ export function EmisionWizardStickyFooter({
             <span className="emision-wizard__sticky-label">Neto afecto</span>
             <strong>{formatPrecioProducto(totales.neto_afecto)}</strong>
           </div>
-          <div className="emision-wizard__sticky-total-item">
-            <span className="emision-wizard__sticky-label">Neto exento</span>
-            <strong>{formatPrecioProducto(totales.neto_exento)}</strong>
-          </div>
+          {totales.neto_exento > 0 ? (
+            <div className="emision-wizard__sticky-total-item">
+              <span className="emision-wizard__sticky-label">Neto exento</span>
+              <strong>{formatPrecioProducto(totales.neto_exento)}</strong>
+            </div>
+          ) : null}
+          {totales.neto_no_facturable > 0 ? (
+            <div className="emision-wizard__sticky-total-item">
+              <span className="emision-wizard__sticky-label">No facturable</span>
+              <strong>{formatPrecioProducto(totales.neto_no_facturable)}</strong>
+            </div>
+          ) : null}
           {totales.neto_afecto > 0 ? (
             <div className="emision-wizard__sticky-total-item">
               <span className="emision-wizard__sticky-label">IVA ({totales.tasa_iva}%)</span>
@@ -54,7 +64,11 @@ export function EmisionWizardStickyFooter({
         </div>
       </div>
       <p className="emision-wizard__sticky-hint">
-        Montos estimados según el catálogo. El total definitivo lo calcula el servidor al emitir.
+        {totalesCalculando
+          ? 'Calculando totales con el servidor…'
+          : totales.origen === 'servidor'
+            ? 'Totales calculados por el servidor (incluye descuentos/recargos globales).'
+            : 'Montos estimados según el catálogo. El total definitivo lo calcula el servidor al emitir.'}
       </p>
     </footer>
   )

@@ -4,6 +4,7 @@ module Api
   module V1
     class DteController < BaseController
       include DteAuditable
+      include DteDescuentosRecargosParams
 
       # Orquesta el pipeline de emisión DTE en etapas reutilizables:
       #
@@ -241,6 +242,14 @@ module Api
           }
         }, status: :ok
 
+      rescue Dte::DescuentosRecargos::Error => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_PREPARAR,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'calculo_totales' }
+        )
+        render json: error_calculo_descuentos_recargos(e), status: :unprocessable_entity
       rescue StandardError => e
         auditar_dte_fallo(
           accion: Auditoria::Acciones::DTE_PREPARAR,
@@ -255,6 +264,48 @@ module Api
         }, status: :internal_server_error
       ensure
         limpiar_archivos_temporales([archivo_temp]) if archivo_temp
+      end
+
+      # POST /api/v1/dte/calcular_totales
+      # Preview de totales con descuentos/recargos globales (sin folios, XML ni firma).
+      # Mismo body que /preparar, más descuentos_recargos_globales opcional.
+      #
+      # Requiere JWT y vínculo con la empresa.
+      #
+      def calcular_totales
+        errores = validar_params_preparar
+        if errores.any?
+          return render json: { success: false, errors: errores }, status: :unprocessable_entity
+        end
+
+        authorize_empresa!(params[:empresa_id])
+        return if performed?
+
+        empresa = Empresa.find_by(id: params[:empresa_id])
+        unless empresa
+          return render json: { success: false, error: 'Empresa no encontrada' }, status: :not_found
+        end
+
+        items_preparados = preparar_items(params[:items], empresa_id: empresa.id)
+        resultado = calcular_documento_con_globales(items_preparados: items_preparados)
+
+        unless resultado[:success]
+          mensajes = Array(resultado[:errors] || resultado[:error]).flatten.compact
+          return render json: {
+            success: false,
+            errors: mensajes.presence || ['No se pudo calcular totales']
+          }, status: :unprocessable_entity
+        end
+
+        render json: {
+          success: true,
+          data: payload_calcular_totales_dte(resultado)
+        }, status: :ok
+      rescue ActiveRecord::RecordNotFound, StandardError => e
+        render json: {
+          success: false,
+          error: e.message
+        }, status: :unprocessable_entity
       end
 
       # POST /api/v1/dte/generar_xml
@@ -396,6 +447,14 @@ module Api
           }
         }, status: :ok
 
+      rescue Dte::DescuentosRecargos::Error => e
+        auditar_dte_fallo(
+          accion: Auditoria::Acciones::DTE_GENERAR_XML,
+          empresa: empresa_auditoria_dte,
+          mensaje: e.message,
+          metadata: { fase: 'calculo_totales' }
+        )
+        render json: error_calculo_descuentos_recargos(e), status: :unprocessable_entity
       rescue StandardError => e
         auditar_dte_fallo(
           accion: Auditoria::Acciones::DTE_GENERAR_XML,
@@ -484,7 +543,8 @@ module Api
             tipo_documento: params[:tipo_documento].to_i,
             receptor: params[:receptor],
             paginas: resultado[:resultado_folios][:paginas],
-            items: resultado[:items_clasificados]
+            items: resultado[:items_clasificados],
+            movimientos_globales_raw: descuentos_recargos_globales_raw
           )
 
           unless resultado_persistencia[:success]
@@ -609,13 +669,22 @@ module Api
           return fallo_emision(resultado_folios[:error], fase: 'asignacion_folios', status: :unprocessable_entity)
         end
 
-        estructura_dte = construir_estructura_dte(
-          empresa: empresa,
-          receptor: params[:receptor],
-          tipo_documento: params[:tipo_documento].to_i,
-          items: resultado_clasificacion[:items],
-          paginas: resultado_folios[:paginas]
-        )
+        begin
+          estructura_dte = construir_estructura_dte(
+            empresa: empresa,
+            receptor: params[:receptor],
+            tipo_documento: params[:tipo_documento].to_i,
+            items: resultado_clasificacion[:items],
+            paginas: resultado_folios[:paginas]
+          )
+        rescue Dte::DescuentosRecargos::Error => e
+          return fallo_emision(
+            e.message,
+            fase: 'calculo_totales',
+            status: :unprocessable_entity,
+            errors: [e.message]
+          )
+        end
 
         actecos = empresa.actecos.map { |a| { codigo: a.codigo, nombre: a.nombre } }
 
@@ -827,6 +896,8 @@ module Api
           end
         end
 
+        errores.concat(errores_estructura_descuentos_recargos_globales)
+
         errores
       end
 
@@ -837,6 +908,8 @@ module Api
           cantidad = (item[:cantidad] || item['cantidad']).to_f
           descuento_pct = (item[:descuento_pct] || item['descuento_pct'] || 0).to_f
           descuento = (item[:descuento] || item['descuento'] || 0).to_f
+          recargo_pct = (item[:recargo_pct] || item['recargo_pct'] || 0).to_f
+          recargo = (item[:recargo] || item['recargo'] || 0).to_f
 
           producto = Producto.includes(:impuestos, :producto_impuestos)
                              .find_by(id: producto_id, empresa_id: empresa_id)
@@ -849,16 +922,22 @@ module Api
             raise StandardError, "El producto #{producto.codigo} está inactivo"
           end
 
-          # Afecto = tiene impuestos asociados en producto_impuestos (ej: IVA 19%)
-          afecto = producto.producto_impuestos.any?
-
-          # Obtener impuestos del producto
+          # Clasificación SII del ítem (afecto / exento / no facturable)
           impuestos = obtener_impuestos_producto(producto)
+          clasificacion = producto.clasificacion
+          ambito_monto = clasificacion.ambito_monto
+          afecto = clasificacion.afecto?
 
-          # Calcular subtotal y neto
-          subtotal = cantidad * producto.precio_unitario
-          descuento_monto = descuento > 0 ? descuento : (subtotal * descuento_pct / 100)
-          neto = (subtotal - descuento_monto).to_i
+          linea = Dte::DescuentosRecargos::LineaCalculada.from_item(
+            cantidad: cantidad,
+            precio_unitario: producto.precio_unitario.to_f,
+            descuento_pct: descuento_pct,
+            descuento: descuento,
+            recargo_pct: recargo_pct,
+            recargo: recargo,
+            ambito_monto: ambito_monto,
+            afecto: afecto
+          )
 
           {
             producto_id: producto_id,
@@ -867,8 +946,11 @@ module Api
             cantidad: cantidad,
             precio_unitario: producto.precio_unitario.to_f,
             descuento_pct: descuento_pct,
-            descuento: descuento_monto,
-            neto: neto,
+            descuento: linea.descuento_linea,
+            recargo_pct: recargo_pct,
+            recargo: linea.recargo_linea,
+            neto: linea.monto_neto,
+            ambito_monto: ambito_monto,
             afecto: afecto,
             impuestos: impuestos
           }
@@ -914,55 +996,30 @@ module Api
           },
           paginas: paginas.map do |pg|
             items_pagina = items.select { |i| i[:pagina] == pg[:pagina] }
-            totales = calcular_totales(items_pagina)
+            resultado_pagina = calcular_pagina_dte(items_pagina: items_pagina)
+
+            unless resultado_pagina[:success]
+              mensaje = Array(resultado_pagina[:errors] || resultado_pagina[:error]).join('; ')
+              raise Dte::DescuentosRecargos::Error, mensaje.presence || 'Error calculando totales del documento'
+            end
 
             {
               numero: pg[:pagina],
               folio: pg[:folio],
               archivo_caf: pg[:archivo_caf],
               items: items_pagina,
-              totales: totales
+              totales: resultado_pagina[:totales],
+              descuentos_recargos_globales: resultado_pagina[:descuentos_recargos_globales]
             }
           end
         }
       end
 
-      # Acumula neto afecto/exento e impuestos por ítem; separa IVA del resto
-      def calcular_totales(items)
-        neto_afecto = 0
-        neto_exento = 0
-        impuestos_acumulados = {}
-
-        items.each do |item|
-          if item[:afecto]
-            neto_afecto += item[:neto]
-
-            # Acumular impuestos por tipo
-            item[:impuestos].each do |imp|
-              codigo = imp[:codigo]
-              impuestos_acumulados[codigo] ||= { codigo: codigo, nombre: imp[:nombre], tasa: imp[:tasa], monto: 0 }
-              impuestos_acumulados[codigo][:monto] += (item[:neto] * imp[:tasa] / 100.0).to_i
-            end
-          else
-            neto_exento += item[:neto]
-          end
-        end
-
-        # Calcular total de impuestos
-        total_impuestos = impuestos_acumulados.values.sum { |imp| imp[:monto] }
-        total = neto_afecto + neto_exento + total_impuestos
-
-        # Obtener IVA específico si existe
-        iva_info = impuestos_acumulados['IVA'] || { tasa: 0, monto: 0 }
-
+      def error_calculo_descuentos_recargos(error)
         {
-          neto_afecto: neto_afecto,
-          neto_exento: neto_exento,
-          tasa_iva: iva_info[:tasa],
-          iva: iva_info[:monto],
-          otros_impuestos: impuestos_acumulados.reject { |k, _| k == 'IVA' }.values,
-          total_impuestos: total_impuestos,
-          total: total
+          success: false,
+          errors: [error.message],
+          fase: 'calculo_totales'
         }
       end
 

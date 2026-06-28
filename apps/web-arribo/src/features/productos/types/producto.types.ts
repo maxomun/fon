@@ -5,6 +5,8 @@ export interface ProductoImpuesto {
   tasa_vigente: number | null
 }
 
+export type ProductoAmbitoMonto = 'AFECTO' | 'EXENTO_NO_AFECTO' | 'NO_FACTURABLE' | null
+
 export interface Producto {
   id: number
   empresa_id: number
@@ -13,6 +15,8 @@ export interface Producto {
   precio_unitario: string
   precio_con_impuestos: string
   activo: boolean
+  ambito_monto: ProductoAmbitoMonto
+  ambito_monto_efectivo: string
   afecto: boolean
   impuestos: ProductoImpuesto[]
   tiene_ventas: boolean
@@ -26,6 +30,7 @@ export interface ProductoInput {
   precio_unitario: string
   activo: boolean
   impuesto_ids: number[]
+  ambito_monto: string
 }
 
 export type ProductoActivoFiltro = 'todos' | 'activos' | 'inactivos'
@@ -66,8 +71,16 @@ export function emptyProductoInput(): ProductoInput {
     precio_unitario: '',
     activo: true,
     impuesto_ids: [],
+    ambito_monto: '',
   }
 }
+
+export const PRODUCTO_AMBITO_OPCIONES = [
+  { value: '', label: 'Automático (según impuestos)' },
+  { value: 'AFECTO', label: 'Afecto (con impuestos)' },
+  { value: 'EXENTO_NO_AFECTO', label: 'Exento / no afecto' },
+  { value: 'NO_FACTURABLE', label: 'No facturable' },
+] as const
 
 export function productoToInput(producto: Producto): ProductoInput {
   return {
@@ -76,6 +89,7 @@ export function productoToInput(producto: Producto): ProductoInput {
     precio_unitario: producto.precio_unitario,
     activo: producto.activo,
     impuesto_ids: producto.impuestos.map((impuesto) => impuesto.id),
+    ambito_monto: producto.ambito_monto ?? '',
   }
 }
 
@@ -87,6 +101,7 @@ export function productoPayload(input: ProductoInput) {
       precio_unitario: Number(input.precio_unitario),
       activo: input.activo,
       impuesto_ids: input.impuesto_ids,
+      ambito_monto: input.ambito_monto.trim() || null,
     },
   }
 }
@@ -138,6 +153,10 @@ export function formatPrecioProducto(value: string | number | null | undefined) 
 }
 
 export function impuestosProductoLabel(producto: Producto) {
+  if (producto.ambito_monto_efectivo === 'NO_FACTURABLE') {
+    return 'No facturable'
+  }
+
   if (producto.impuestos.length === 0) {
     return 'Exento'
   }

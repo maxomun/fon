@@ -23,6 +23,12 @@ export function EmisionTotalesResumen({ totales, cantidadItems }: EmisionTotales
           <dt>Neto exento</dt>
           <dd>{formatPrecioProducto(totales.neto_exento)}</dd>
         </div>
+        {totales.neto_no_facturable > 0 ? (
+          <div>
+            <dt>No facturable</dt>
+            <dd>{formatPrecioProducto(totales.neto_no_facturable)}</dd>
+          </div>
+        ) : null}
         {totales.neto_afecto > 0 ? (
           <div>
             <dt>IVA ({totales.tasa_iva}%)</dt>

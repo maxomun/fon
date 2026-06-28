@@ -1223,6 +1223,39 @@ p {
   font-size: 0.88rem;
 }
 
+.emision-wizard__section--globales {
+  padding-bottom: 1rem;
+}
+
+.emision-wizard__globales {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.emision-wizard__hint--inline {
+  margin: 0.35rem 0 0;
+}
+
+.emision-wizard__globales-table th,
+.emision-wizard__globales-table td {
+  vertical-align: middle;
+}
+
+.emision-wizard__col-tipo-valor {
+  width: 5.5rem;
+}
+
+.emision-wizard__col-valor-global {
+  width: 6.5rem;
+}
+
+.emision-wizard__col-monto-global {
+  width: 7.5rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .emision-wizard__sticky-footer {
   position: sticky;
   bottom: 0;

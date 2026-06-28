@@ -3,6 +3,12 @@ import type { Producto } from '@/features/productos/types/producto.types'
 /** Código SII Factura Electrónica — wizard v1 */
 export const FACTURA_ELECTRONICA_CODIGO = '33'
 
+export const MAX_MOVIMIENTOS_GLOBALES = 20
+
+export type EmisionTipoMovimiento = 'D' | 'R'
+export type EmisionTipoValorGlobal = 'PORCENTAJE' | 'MONTO'
+export type EmisionAplicaSobre = 'AFECTO' | 'EXENTO_NO_AFECTO' | 'NO_FACTURABLE'
+
 export interface EmisionReceptor {
   rut: string
   razon_social: string
@@ -31,9 +37,39 @@ export interface EmisionLineaCalculada {
 export interface EmisionTotales {
   neto_afecto: number
   neto_exento: number
+  neto_no_facturable: number
   iva: number
   tasa_iva: number
   total: number
+  origen?: 'local' | 'servidor'
+}
+
+export interface EmisionDescuentoRecargoGlobal {
+  key: string
+  tipo_movimiento: EmisionTipoMovimiento
+  glosa: string
+  tipo_valor: EmisionTipoValorGlobal
+  valor: string
+  aplica_sobre: EmisionAplicaSobre
+}
+
+export interface EmisionDescuentoRecargoGlobalRequest {
+  tipo_movimiento: EmisionTipoMovimiento
+  glosa?: string
+  tipo_valor: EmisionTipoValorGlobal
+  valor: number
+  aplica_sobre: EmisionAplicaSobre
+}
+
+export interface EmisionMovimientoGlobalCalculado {
+  nro_linea: number
+  tipo_movimiento: EmisionTipoMovimiento
+  glosa: string
+  tipo_valor: EmisionTipoValorGlobal
+  valor: number
+  aplica_sobre: EmisionAplicaSobre
+  monto_calculado: number
+  orden: number
 }
 
 export interface EmisionItemRequest {
@@ -47,7 +83,36 @@ export interface EmisionGenerarRequest {
   tipo_documento: number
   receptor: EmisionReceptor
   items: EmisionItemRequest[]
+  descuentos_recargos_globales?: EmisionDescuentoRecargoGlobalRequest[]
   enviar_sii?: boolean
+}
+
+export interface EmisionCalcularTotalesRequest {
+  empresa_id: number
+  tipo_documento: number
+  receptor: EmisionReceptor
+  items: EmisionItemRequest[]
+  descuentos_recargos_globales?: EmisionDescuentoRecargoGlobalRequest[]
+}
+
+export interface EmisionCalcularTotalesData {
+  subtotales: Record<EmisionAplicaSobre, number>
+  totales: {
+    neto_afecto: number
+    neto_exento: number
+    neto_no_facturable: number
+    tasa_iva: number
+    iva: number
+    total: number
+  }
+  descuentos_recargos_globales: EmisionMovimientoGlobalCalculado[]
+}
+
+export interface EmisionCalcularTotalesResponse {
+  success: boolean
+  data?: EmisionCalcularTotalesData
+  error?: string
+  errors?: string[]
 }
 
 export interface DocumentoEmitidoResumen {
@@ -81,6 +146,22 @@ export interface EmisionGenerarResponse {
   }
 }
 
+export const EMISION_GLOBAL_TIPO_MOV_OPCIONES = [
+  { value: 'D' as const, label: 'Descuento' },
+  { value: 'R' as const, label: 'Recargo' },
+]
+
+export const EMISION_GLOBAL_TIPO_VALOR_OPCIONES = [
+  { value: 'PORCENTAJE' as const, label: '%' },
+  { value: 'MONTO' as const, label: '$' },
+]
+
+export const EMISION_GLOBAL_APLICA_SOBRE_OPCIONES = [
+  { value: 'AFECTO' as const, label: 'Neto afecto' },
+  { value: 'EXENTO_NO_AFECTO' as const, label: 'Exento / no afecto' },
+  { value: 'NO_FACTURABLE' as const, label: 'No facturable' },
+]
+
 export function emptyEmisionReceptor(): EmisionReceptor {
   return {
     rut: '',
@@ -97,5 +178,16 @@ export function emptyEmisionLinea(): EmisionLinea {
     producto_id: 0,
     cantidad: '1',
     descuento_pct: '0',
+  }
+}
+
+export function emptyEmisionDescuentoRecargoGlobal(): EmisionDescuentoRecargoGlobal {
+  return {
+    key: crypto.randomUUID(),
+    tipo_movimiento: 'D',
+    glosa: '',
+    tipo_valor: 'PORCENTAJE',
+    valor: '',
+    aplica_sobre: 'AFECTO',
   }
 }

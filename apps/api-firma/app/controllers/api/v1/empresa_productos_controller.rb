@@ -217,7 +217,7 @@ module Api
       end
 
       def producto_params
-        params.require(:producto).permit(:codigo, :nombre, :precio_unitario, :activo)
+        params.require(:producto).permit(:codigo, :nombre, :precio_unitario, :activo, :ambito_monto)
       end
 
       def producto_impuesto_ids_param

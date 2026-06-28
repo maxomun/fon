@@ -12,6 +12,9 @@ class DocumentoEmitido < ApplicationRecord
   belongs_to :dte_envio, optional: true
   has_many :documentos_asociados, class_name: 'DocumentoEmitido', foreign_key: :asociado_id, dependent: :nullify
   has_many :venta_detalles, dependent: :destroy
+  has_many :documento_descuentos_recargos_globales,
+           class_name: 'DocumentoDescuentoRecargoGlobal',
+           dependent: :destroy
 
   # Validaciones
   validates :folio, presence: true, numericality: { only_integer: true }

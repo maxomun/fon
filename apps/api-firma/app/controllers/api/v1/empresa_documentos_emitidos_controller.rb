@@ -36,7 +36,8 @@ module Api
       def set_documento
         @documento = @empresa.documento_emitidos
                              .dte
-                             .includes(:usuario, :dte_envio, tipo_habilitado: :tipo_documento, venta_detalles: :producto)
+                             .includes(:usuario, :dte_envio, :documento_descuentos_recargos_globales,
+                                       tipo_habilitado: :tipo_documento, venta_detalles: :producto)
                              .find(params[:id])
       end
 

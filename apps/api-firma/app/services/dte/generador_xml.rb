@@ -129,6 +129,7 @@ module Dte
       xml.Documento('ID' => id_documento) do
         construir_encabezado(xml, pagina[:folio], totales)
         construir_detalles(xml, items)
+        construir_descuentos_recargos_globales(xml, pagina)
         # TED incluye datos resumidos del DTE; la firma del timbre se agrega en Dte::Firmador
         construir_timbre_electronico(xml, pagina[:folio], totales, items)
         xml.TmstFirma documento[:timestamp]
@@ -204,9 +205,46 @@ module Dte
           xml.PrcItem item[:precio_unitario].to_i
           xml.DescuentoPct item[:descuento_pct] if item[:descuento_pct].to_f > 0
           xml.DescuentoMonto item[:descuento].to_i if item[:descuento].to_i > 0
+          xml.RecargoPct item[:recargo_pct] if item[:recargo_pct].to_f > 0
+          xml.RecargoMonto item[:recargo].to_i if item[:recargo].to_i > 0
+          ind_exe = ind_exe_detalle_item(item)
+          xml.IndExe ind_exe if ind_exe
           xml.MontoItem item[:neto].to_i
         end
       end
+    end
+
+    # Descuentos/recargos globales (SII <DscRcgGlobal>) — después de Detalle, antes de TED.
+    def construir_descuentos_recargos_globales(xml, pagina)
+      movimientos = Array(pagina[:descuentos_recargos_globales])
+      return if movimientos.empty?
+
+      movimientos.each do |movimiento_raw|
+        movimiento = normalizar_movimiento_global(movimiento_raw)
+        xml.DscRcgGlobal do
+          xml.NroLinDR movimiento.nro_linea
+          xml.TpoMov movimiento.tipo_movimiento
+          xml.GlosaDR escape_xml(truncar(movimiento.glosa_para_xml, 45))
+          xml.TpoValor movimiento.xml_tpo_valor
+          xml.ValorDR formatear_valor_dr(movimiento)
+          ind_exe = movimiento.xml_ind_exe_dr
+          xml.IndExeDR ind_exe if ind_exe
+        end
+      end
+    end
+
+    def normalizar_movimiento_global(raw)
+      return raw if raw.is_a?(Dte::DescuentosRecargos::MovimientoGlobal)
+
+      Dte::DescuentosRecargos::MovimientoGlobal.from_hash(raw)
+    end
+
+    def formatear_valor_dr(movimiento)
+      valor = movimiento.valor
+      return valor.to_i unless movimiento.porcentaje?
+      return valor.to_i if valor == valor.to_i
+
+      valor
     end
 
     def construir_codigo_item(xml, item)
@@ -214,6 +252,10 @@ module Dte
         xml.TpoCodigo 'INT1'
         xml.VlrCodigo item[:codigo]
       end
+    end
+
+    def ind_exe_detalle_item(item)
+      Dte::DescuentosRecargos::ClasificacionMonto.desde_item(item).ind_exe_detalle
     end
 
     # TED (Timbre Electrónico DTE): bloque <DD> con datos mínimos para validación SII.

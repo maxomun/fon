@@ -33,6 +33,7 @@ Rails.application.routes.draw do
         post 'test_clasificacion', to: 'dte#test_clasificacion'
         post 'test_folios', to: 'dte#test_folios'
         post 'preparar', to: 'dte#preparar'
+        post 'calcular_totales', to: 'dte#calcular_totales'
         post 'generar_xml', to: 'dte#generar_xml'
         post 'firmar_xml', to: 'dte#firmar_xml'
         post 'generar', to: 'dte#generar'

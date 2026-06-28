@@ -8,13 +8,14 @@ module Dte
       new(**params).call
     end
 
-    def initialize(empresa:, usuario:, tipo_documento:, receptor:, paginas:, items:)
+    def initialize(empresa:, usuario:, tipo_documento:, receptor:, paginas:, items:, movimientos_globales_raw: nil)
       @empresa = empresa
       @usuario = usuario
       @tipo_documento = tipo_documento
       @receptor = receptor
       @paginas = paginas
       @items = items
+      @movimientos_globales_raw = movimientos_globales_raw
     end
 
     def call
@@ -25,13 +26,13 @@ module Dte
       end
 
       { success: true, documentos: documentos }
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound, Dte::DescuentosRecargos::Error => e
       { success: false, error: e.message }
     end
 
     private
 
-    attr_reader :empresa, :usuario, :tipo_documento, :receptor, :paginas, :items
+    attr_reader :empresa, :usuario, :tipo_documento, :receptor, :paginas, :items, :movimientos_globales_raw
 
     def obtener_tipo_habilitado
       tipo_doc = TipoDocumento.find_by!(codigo: tipo_documento.to_s)
@@ -65,19 +66,50 @@ module Dte
       documento.update!(referencia_id: documento.id)
 
       items_pagina.each do |item|
+        ambito_monto = item[:ambito_monto] || (
+          item[:afecto] ? Dte::DescuentosRecargos::Constants::APLICA_SOBRE_AFECTO : Dte::DescuentosRecargos::Constants::APLICA_SOBRE_EXENTO
+        )
+
         VentaDetalle.create!(
           documento_emitido_id: documento.id,
           item: item[:glosa],
           cantidad: item[:cantidad],
           precio_unitario: item[:precio_unitario],
           descuento: item[:descuento_pct] || 0,
-          afecto: item[:afecto],
+          afecto: ambito_monto == Dte::DescuentosRecargos::Constants::APLICA_SOBRE_AFECTO,
+          ambito_monto: ambito_monto,
           impuesto: tasa_impuesto_item(item),
           producto_id: item[:producto_id]
         )
       end
 
+      persistir_descuentos_recargos_globales(documento, items_pagina, pagina)
+
       documento
+    end
+
+    def persistir_descuentos_recargos_globales(documento, items_pagina, pagina)
+      movimientos = pagina[:descuentos_recargos_globales]
+
+      if movimientos.nil?
+        resultado = Dte::DescuentosRecargos::IntegradorPagina.call(
+          items_pagina: items_pagina,
+          movimientos_globales_raw: movimientos_globales_raw
+        )
+        unless resultado[:success]
+          errores = Array(resultado[:errors] || resultado[:error]).join('; ')
+          raise Dte::DescuentosRecargos::Error, errores.presence || 'Error calculando movimientos globales'
+        end
+
+        movimientos = resultado[:descuentos_recargos_globales]
+      end
+
+      Array(movimientos).each do |movimiento|
+        DocumentoDescuentoRecargoGlobal.crear_desde_hash!(
+          documento_emitido: documento,
+          movimiento: movimiento
+        )
+      end
     end
 
     def normalizar_receptor

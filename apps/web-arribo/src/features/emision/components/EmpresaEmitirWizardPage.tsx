@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, LoadingScreen } from '@/components/ui'
+import { EmisionGlobalesEditor } from '@/features/emision/components/EmisionGlobalesEditor'
 import { EmisionLineasEditor } from '@/features/emision/components/EmisionLineasEditor'
 import { EmisionReceptorForm } from '@/features/emision/components/EmisionReceptorForm'
 import { EmisionResultadoPanel } from '@/features/emision/components/EmisionResultadoPanel'
@@ -21,7 +22,11 @@ export function EmpresaEmitirWizardPage() {
     setReceptor,
     lineas,
     lineasCalculadas,
+    globales,
+    movimientosCalculados,
     totales,
+    totalesCalculando,
+    totalesPreviewError,
     isLoading,
     isSubmitting,
     pageError,
@@ -30,6 +35,9 @@ export function EmpresaEmitirWizardPage() {
     agregarLinea,
     quitarLinea,
     actualizarLinea,
+    agregarGlobal,
+    quitarGlobal,
+    actualizarGlobal,
     emitir,
     reiniciar,
   } = useEmisionWizard(empresaId)
@@ -104,6 +112,8 @@ export function EmpresaEmitirWizardPage() {
         >
           {formError ? <Alert variant="error">{formError}</Alert> : null}
 
+          {totalesPreviewError ? <Alert variant="info">{totalesPreviewError}</Alert> : null}
+
           <section className="panel-card emision-wizard__section">
             <h2>Receptor</h2>
             <p className="emision-panel__intro">
@@ -127,11 +137,23 @@ export function EmpresaEmitirWizardPage() {
             />
           </section>
 
+          <section className="panel-card emision-wizard__section emision-wizard__section--globales">
+            <EmisionGlobalesEditor
+              globales={globales}
+              movimientosCalculados={movimientosCalculados}
+              disabled={isSubmitting}
+              onAdd={agregarGlobal}
+              onRemove={quitarGlobal}
+              onChange={actualizarGlobal}
+            />
+          </section>
+
           <EmisionWizardStickyFooter
             totales={totales}
             cantidadItems={lineasCalculadas.length}
             isSubmitting={isSubmitting}
             canEmit={Boolean(tipoFactura)}
+            totalesCalculando={totalesCalculando}
           />
         </form>
       )}

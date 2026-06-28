@@ -14,6 +14,8 @@ module ProductoSerializable
       precio_unitario: format('%.2f', producto.precio_unitario),
       precio_con_impuestos: format('%.2f', producto.precio_con_impuestos),
       activo: producto.activo,
+      ambito_monto: producto.read_attribute(:ambito_monto),
+      ambito_monto_efectivo: producto.ambito_monto_efectivo,
       afecto: producto.afecto?,
       impuestos: impuestos_producto_payload(producto),
       tiene_ventas: producto.tiene_ventas?,

@@ -27,8 +27,24 @@ module DocumentoEmitidoSerializable
       razon_social_emisor: documento.razon_social_emisor,
       giro_receptor: documento.giro_receptor,
       direccion_receptor: documento.direccion_receptor,
-      lineas: documento.venta_detalles.sort_by(&:item).map { |linea| venta_detalle_payload(linea) }
+      lineas: documento.venta_detalles.sort_by(&:item).map { |linea| venta_detalle_payload(linea) },
+      descuentos_recargos_globales: documento.documento_descuentos_recargos_globales.ordenados.map do |movimiento|
+        documento_descuento_recargo_global_payload(movimiento)
+      end
     )
+  end
+
+  def documento_descuento_recargo_global_payload(movimiento)
+    {
+      nro_linea: movimiento.nro_linea,
+      tipo_movimiento: movimiento.tipo_movimiento,
+      glosa: movimiento.glosa,
+      tipo_valor: movimiento.tipo_valor,
+      valor: movimiento.valor.to_f,
+      aplica_sobre: movimiento.aplica_sobre,
+      monto_calculado: movimiento.monto_calculado,
+      orden: movimiento.orden
+    }
   end
 
   def venta_detalle_payload(linea)
@@ -38,6 +54,7 @@ module DocumentoEmitidoSerializable
       precio_unitario: format('%.2f', linea.precio_unitario),
       descuento: linea.descuento.to_f,
       afecto: linea.afecto,
+      ambito_monto: linea.ambito_monto,
       impuesto: linea.impuesto.to_f,
       subtotal_con_impuesto: format('%.2f', linea.subtotal_con_impuesto)
     }

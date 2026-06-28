@@ -177,6 +177,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.unique_constraint ["ruta_imagen"], name: "uq_ruta_imagen"
   end
 
+  create_table "documento_descuentos_recargos_globales", force: :cascade do |t|
+    t.integer "documento_emitido_id", null: false, comment: "Documento al que pertenece el movimiento global."
+    t.integer "nro_linea", null: false, comment: "Correlativo 1-20 dentro del documento (NroLinDR)."
+    t.string "tipo_movimiento", limit: 1, null: false, comment: "D = descuento, R = recargo."
+    t.string "glosa", limit: 250, null: false, comment: "GlosaDR del movimiento."
+    t.string "tipo_valor", limit: 20, null: false, comment: "PORCENTAJE o MONTO."
+    t.decimal "valor", precision: 15, scale: 4, null: false, comment: "ValorDR (% o monto fijo)."
+    t.string "aplica_sobre", limit: 30, null: false, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE."
+    t.integer "monto_calculado", null: false, comment: "Monto aplicado sobre la base correspondiente."
+    t.integer "orden", null: false, comment: "Orden de aplicación en el documento."
+
+    t.index ["documento_emitido_id"], name: "idx_doc_dr_globales_documento"
+    t.unique_constraint ["documento_emitido_id", "nro_linea"], name: "uq_doc_dr_globales_documento_nro_linea"
+  end
+
   create_table "documento_recibidos", id: :integer, default: nil, force: :cascade do |t|
     t.integer "tipo_documento_id", null: false
     t.integer "folio", null: false, comment: "Numero de folio del documento del proveedor, puede provenir de un DTE o de un documento manual."
@@ -304,6 +319,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.datetime "fecha_creacion", precision: nil, default: -> { "now()" }, null: false, comment: "Alta del producto en el catálogo de la empresa."
     t.datetime "fecha_actualizacion", precision: nil, default: -> { "now()" }, null: false, comment: "Última modificación de datos del producto (precio, nombre, impuestos, etc.)."
     t.boolean "activo", default: true, null: false, comment: "FALSE = no se ofrece en emisión; no borra historial de ventas."
+    t.string "ambito_monto", limit: 30, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE. NULL = derivar de impuestos."
     t.index ["empresa_id", "activo"], name: "idx_productos_empresa_activo"
     t.index ["empresa_id", "codigo"], name: "idx_productos_empresa_codigo"
     t.index ["empresa_id"], name: "idx_productos_empresa_id"
@@ -422,6 +438,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
     t.decimal "descuento", precision: 10, scale: 2, default: "0.0", null: false, comment: "Descuento del item."
     t.decimal "precio_unitario", precision: 10, scale: 2, null: false, comment: "PRecio unitario"
     t.boolean "afecto", null: false, comment: "Indica si es afecto a impuesto."
+    t.string "ambito_monto", limit: 30, comment: "AFECTO | EXENTO_NO_AFECTO | NO_FACTURABLE al emitir."
     t.decimal "impuesto", precision: 10, scale: 2, null: false, comment: "Porcentaje ( 0-99.99) de impuesto del afecto."
     t.integer "referencia_detalle_id", comment: "referencia al documento originado en sistema que alimenta al  FO"
     t.integer "producto_id", comment: "Indica el producto vendido, valido este campo para aquellos documentos emitidos en forma autonoma por facturaon (no integrado)"
@@ -438,6 +455,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000002) do
   add_foreign_key "documento_emitidos", "dte_envios", name: "fk_documento_emitidos_dte_envios"
   add_foreign_key "documento_emitidos", "tipo_habilitados", name: "fk_documento_emitidos_tipo_habilitados"
   add_foreign_key "documento_emitidos", "users", column: "usuario_id", name: "fk_documento_ventas_usuarios"
+  add_foreign_key "documento_descuentos_recargos_globales", "documento_emitidos", name: "fk_doc_dr_globales_documento_emitidos", on_delete: :cascade
   add_foreign_key "dte_envios", "empresas", name: "fk_dte_envios_empresas"
   add_foreign_key "dte_envios", "users", column: "usuario_id", name: "fk_dte_envios_users"
   add_foreign_key "documento_recibidos", "proveedores", name: "fk_documento_compras_proveedores"

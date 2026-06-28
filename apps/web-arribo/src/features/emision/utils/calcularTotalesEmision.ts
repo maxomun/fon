@@ -1,8 +1,15 @@
 import type {
+  EmisionCalcularTotalesData,
+  EmisionCalcularTotalesRequest,
+  EmisionDescuentoRecargoGlobal,
+  EmisionDescuentoRecargoGlobalRequest,
   EmisionLinea,
-  EmisionLineaCalculada,
+  EmisionReceptor,
+  EmisionTipoValorGlobal,
   EmisionTotales,
+  EmisionLineaCalculada,
 } from '@/features/emision/types/emision.types'
+import { FACTURA_ELECTRONICA_CODIGO } from '@/features/emision/types/emision.types'
 import type { Producto } from '@/features/productos/types/producto.types'
 
 export function calcularLineaEmision(
@@ -51,9 +58,88 @@ export function calcularTotalesEmision(
   return {
     neto_afecto: netoAfecto,
     neto_exento: netoExento,
+    neto_no_facturable: 0,
     iva,
     tasa_iva: tasaIva,
     total: netoAfecto + netoExento + iva,
+    origen: 'local',
+  }
+}
+
+export function mapearTotalesDesdeApi(
+  totales: EmisionCalcularTotalesData['totales'],
+): EmisionTotales {
+  return {
+    neto_afecto: totales.neto_afecto,
+    neto_exento: totales.neto_exento,
+    neto_no_facturable: totales.neto_no_facturable ?? 0,
+    iva: totales.iva,
+    tasa_iva: totales.tasa_iva,
+    total: totales.total,
+    origen: 'servidor',
+  }
+}
+
+export function parseGlobalMovimiento(
+  movimiento: EmisionDescuentoRecargoGlobal,
+): EmisionDescuentoRecargoGlobalRequest | null {
+  const valor = Number(movimiento.valor)
+  if (!Number.isFinite(valor) || valor <= 0) {
+    return null
+  }
+
+  if (movimiento.tipo_valor === 'PORCENTAJE' && valor > 100) {
+    return null
+  }
+
+  const payload: EmisionDescuentoRecargoGlobalRequest = {
+    tipo_movimiento: movimiento.tipo_movimiento,
+    tipo_valor: movimiento.tipo_valor,
+    valor,
+    aplica_sobre: movimiento.aplica_sobre,
+  }
+
+  const glosa = movimiento.glosa.trim()
+  if (glosa) {
+    payload.glosa = glosa
+  }
+
+  return payload
+}
+
+export function serializarGlobalesParaApi(
+  globales: EmisionDescuentoRecargoGlobal[],
+): EmisionDescuentoRecargoGlobalRequest[] {
+  return globales.flatMap((movimiento) => {
+    const parsed = parseGlobalMovimiento(movimiento)
+    return parsed ? [parsed] : []
+  })
+}
+
+export function buildCalcularTotalesRequest(
+  empresaId: number,
+  lineas: EmisionLinea[],
+  receptor: EmisionReceptor,
+  globales: EmisionDescuentoRecargoGlobal[],
+): EmisionCalcularTotalesRequest {
+  const globalesApi = serializarGlobalesParaApi(globales)
+
+  return {
+    empresa_id: empresaId,
+    tipo_documento: Number(FACTURA_ELECTRONICA_CODIGO),
+    receptor: {
+      rut: receptor.rut.trim() || '00000000-0',
+      razon_social: receptor.razon_social.trim() || 'Preview',
+      giro: receptor.giro.trim() || 'Sin giro',
+      direccion: receptor.direccion.trim() || 'Sin dirección',
+      email: receptor.email.trim(),
+    },
+    items: lineas.map((linea) => ({
+      producto_id: linea.producto_id,
+      cantidad: Number(linea.cantidad),
+      descuento_pct: Number(linea.descuento_pct) || 0,
+    })),
+    ...(globalesApi.length > 0 ? { descuentos_recargos_globales: globalesApi } : {}),
   }
 }
 
@@ -84,4 +170,8 @@ export function resolverLineasCalculadas(
       return calcularLineaEmision(producto, cantidad, descuentoPct)
     })
     .filter((linea): linea is EmisionLineaCalculada => linea !== null)
+}
+
+export function labelTipoValorGlobal(tipo: EmisionTipoValorGlobal) {
+  return tipo === 'PORCENTAJE' ? '%' : '$'
 }
