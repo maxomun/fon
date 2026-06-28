@@ -52,7 +52,23 @@ export const documentosService = {
     return authenticatedClient.get<DocumentoDetailResponse>(`${baseUrl(empresaId)}/${documentoId}`)
   },
 
-  async downloadXml(
+  async fetchPdfBlob(
+    empresaId: number,
+    documentoId: number,
+    context?: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'folio' | 'id'> & {
+      rut_emisor?: string
+    },
+  ) {
+    const fallbackFilename = context
+      ? buildPdfDownloadFilename(context, context.rut_emisor)
+      : undefined
+
+    return authenticatedClient.download(`${baseUrl(empresaId)}/${documentoId}/pdf`, {
+      fallbackFilename,
+    })
+  },
+
+  async fetchXmlBlob(
     empresaId: number,
     dteEnvioId: number,
     context?: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'folio'> & { rut_emisor?: string },
@@ -61,9 +77,21 @@ export const documentosService = {
       ? buildXmlDownloadFilename(dteEnvioId, context, context.rut_emisor)
       : undefined
 
-    const { blob, filename } = await authenticatedClient.download(
+    return authenticatedClient.download(
       `${dteEnviosBaseUrl(empresaId)}/${dteEnvioId}/xml`,
       { fallbackFilename },
+    )
+  },
+
+  async downloadXml(
+    empresaId: number,
+    dteEnvioId: number,
+    context?: Pick<DocumentoEmitidoSummary, 'tipo_documento' | 'folio'> & { rut_emisor?: string },
+  ) {
+    const { blob, filename } = await documentosService.fetchXmlBlob(
+      empresaId,
+      dteEnvioId,
+      context,
     )
     triggerDownload(blob, filename)
   },
@@ -75,13 +103,10 @@ export const documentosService = {
       rut_emisor?: string
     },
   ) {
-    const fallbackFilename = context
-      ? buildPdfDownloadFilename(context, context.rut_emisor)
-      : undefined
-
-    const { blob, filename } = await authenticatedClient.download(
-      `${baseUrl(empresaId)}/${documentoId}/pdf`,
-      { fallbackFilename },
+    const { blob, filename } = await documentosService.fetchPdfBlob(
+      empresaId,
+      documentoId,
+      context,
     )
     triggerDownload(blob, filename)
   },

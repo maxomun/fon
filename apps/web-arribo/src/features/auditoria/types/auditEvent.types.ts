@@ -66,6 +66,9 @@ export interface AuditoriaFiltros {
   empresa_id: string
 }
 
+/** Valor enviado a la API para eventos sin empresa asociada (login FON, etc.). */
+export const AUDITORIA_EMPRESA_SIN_ASIGNAR = 'sin_empresa'
+
 export const CATEGORIA_OPCIONES = [
   { value: '', label: 'Todas las categorías' },
   { value: 'auth', label: 'Autenticación' },

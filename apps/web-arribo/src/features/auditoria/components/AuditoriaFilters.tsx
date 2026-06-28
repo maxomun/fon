@@ -1,31 +1,47 @@
-import { Input } from '@/components/ui'
 import {
+  AUDITORIA_EMPRESA_SIN_ASIGNAR,
   CATEGORIA_OPCIONES,
   RESULTADO_OPCIONES,
   type AuditoriaFiltros,
 } from '@/features/auditoria/types/auditEvent.types'
+import type { Empresa } from '@/features/empresas/types/empresa.types'
 
 interface AuditoriaFiltersProps {
   filtros: AuditoriaFiltros
   showEmpresaFilter?: boolean
+  empresas?: Empresa[]
+  isLoadingEmpresas?: boolean
   onChange: (partial: Partial<AuditoriaFiltros>) => void
+}
+
+function formatEmpresaOption(empresa: Empresa) {
+  return `${empresa.razon_social} (${empresa.rut})`
 }
 
 export function AuditoriaFilters({
   filtros,
   showEmpresaFilter = false,
+  empresas = [],
+  isLoadingEmpresas = false,
   onChange,
 }: AuditoriaFiltersProps) {
+  const empresasOrdenadas = [...empresas].sort((a, b) =>
+    a.razon_social.localeCompare(b.razon_social, 'es'),
+  )
+
   return (
     <div className="page-toolbar">
-      <Input
-        label="Buscar"
-        name="q"
-        placeholder="Acción, actor, recurso o mensaje…"
-        value={filtros.q}
-        onChange={(event) => onChange({ q: event.target.value })}
-        className="page-toolbar__search"
-      />
+      <label className="auditoria-filters__field page-toolbar__search">
+        <span className="auditoria-filters__label">Buscar</span>
+        <input
+          type="search"
+          className="select-input"
+          name="q"
+          placeholder="Acción, actor, recurso o mensaje…"
+          value={filtros.q}
+          onChange={(event) => onChange({ q: event.target.value })}
+        />
+      </label>
 
       <div className="page-toolbar__filters auditoria-filters">
         <label className="auditoria-filters__field">
@@ -81,14 +97,25 @@ export function AuditoriaFilters({
         </label>
 
         {showEmpresaFilter ? (
-          <Input
-            label="Empresa ID"
-            name="empresa_id"
-            placeholder="Filtrar por ID…"
-            value={filtros.empresa_id}
-            onChange={(event) => onChange({ empresa_id: event.target.value })}
-            className="auditoria-filters__empresa-id"
-          />
+          <label className="auditoria-filters__field auditoria-filters__empresa">
+            <span className="auditoria-filters__label">Empresa</span>
+            <select
+              className="select-input"
+              value={filtros.empresa_id}
+              disabled={isLoadingEmpresas}
+              onChange={(event) => onChange({ empresa_id: event.target.value })}
+            >
+              <option value="">
+                {isLoadingEmpresas ? 'Cargando empresas…' : 'Todas las empresas'}
+              </option>
+              <option value={AUDITORIA_EMPRESA_SIN_ASIGNAR}>Sin empresa</option>
+              {empresasOrdenadas.map((empresa) => (
+                <option key={empresa.id} value={String(empresa.id)}>
+                  {formatEmpresaOption(empresa)}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : null}
       </div>
     </div>

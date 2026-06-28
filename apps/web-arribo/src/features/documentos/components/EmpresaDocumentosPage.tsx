@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, Button, ConfirmDialog, LoadingScreen } from '@/components/ui'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { hasAccesoGlobal } from '@/features/auth/utils/roles'
+import { DocumentoArchivoPreviewModal } from '@/features/documentos/components/DocumentoArchivoPreviewModal'
 import { DocumentoDetalleModal } from '@/features/documentos/components/DocumentoDetalleModal'
 import { DocumentosPagination } from '@/features/documentos/components/DocumentosPagination'
 import { DocumentosTable } from '@/features/documentos/components/DocumentosTable'
@@ -40,6 +41,10 @@ export function EmpresaDocumentosPage() {
     closeDetalle,
     downloadXml,
     downloadPdf,
+    previewPdf,
+    previewXml,
+    previewTarget,
+    closePreview,
     downloadingEnvioId,
     downloadingPdfDocumentoId,
     downloadError,
@@ -164,15 +169,20 @@ export function EmpresaDocumentosPage() {
             <DocumentosTable
               documentos={documentos}
               downloadingEnvioId={downloadingEnvioId}
+              downloadingPdfDocumentoId={downloadingPdfDocumentoId}
               limpiandoEnvioId={limpiandoEnvioId}
               isFonAdmin={isFonAdmin}
               onVerDetalle={(documento) => void openDetalle(documento)}
+              onPreviewPdf={(documento) => previewPdf(documento, empresa?.rut)}
               onDownloadXml={(documento) =>
                 void downloadXml(documento.dte_envio_id!, {
                   tipo_documento: documento.tipo_documento,
                   folio: documento.folio,
                   rut_emisor: empresa?.rut,
                 })
+              }
+              onPreviewXml={(documento) =>
+                previewXml(documento, documento.dte_envio_id!, empresa?.rut)
               }
               onLimpiarEnvio={(dteEnvioId) => setEnvioALimpiar(dteEnvioId)}
             />
@@ -192,6 +202,10 @@ export function EmpresaDocumentosPage() {
         isFonAdmin={isFonAdmin}
         onClose={closeDetalle}
         onDownloadPdf={(documento) => void downloadPdf(documento)}
+        onPreviewPdf={(documento) => previewPdf(documento, documento.rut_emisor)}
+        onPreviewXml={(documento) =>
+          previewXml(documento, documento.dte_envio_id!, documento.rut_emisor)
+        }
         onDownloadXml={(documento) =>
           void downloadXml(documento.dte_envio_id!, {
             tipo_documento: documento.tipo_documento,
@@ -200,6 +214,12 @@ export function EmpresaDocumentosPage() {
           })
         }
         onLimpiarEnvio={(dteEnvioId) => setEnvioALimpiar(dteEnvioId)}
+      />
+
+      <DocumentoArchivoPreviewModal
+        empresaId={empresaId}
+        target={previewTarget}
+        onClose={closePreview}
       />
 
       <ConfirmDialog

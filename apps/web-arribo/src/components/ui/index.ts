@@ -1,3 +1,4 @@
+export { IconButton } from './IconButton'
 export { Alert } from './Alert'
 export { Button } from './Button'
 export { Checkbox } from './Checkbox'

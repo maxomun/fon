@@ -1,29 +1,34 @@
 import { useMemo } from 'react'
 import type { DocumentoEmitidoSummary } from '@/features/documentos/types/documentoEmitido.types'
 import {
-  documentoTipoLabel,
   formatDocumentoFecha,
   formatDocumentoMonto,
 } from '@/features/documentos/types/documentoEmitido.types'
-import { Button } from '@/components/ui'
+import { DocumentoRowActions } from '@/features/documentos/components/DocumentoRowActions'
 
 interface DocumentosTableProps {
   documentos: DocumentoEmitidoSummary[]
   downloadingEnvioId: number | null
+  downloadingPdfDocumentoId: number | null
   limpiandoEnvioId: number | null
   isFonAdmin?: boolean
   onVerDetalle: (documento: DocumentoEmitidoSummary) => void
+  onPreviewPdf: (documento: DocumentoEmitidoSummary) => void
   onDownloadXml: (documento: DocumentoEmitidoSummary) => void
+  onPreviewXml: (documento: DocumentoEmitidoSummary) => void
   onLimpiarEnvio: (dteEnvioId: number) => void
 }
 
 export function DocumentosTable({
   documentos,
   downloadingEnvioId,
+  downloadingPdfDocumentoId,
   limpiandoEnvioId,
   isFonAdmin = false,
   onVerDetalle,
+  onPreviewPdf,
   onDownloadXml,
+  onPreviewXml,
   onLimpiarEnvio,
 }: DocumentosTableProps) {
   const primerDocumentoPorEnvio = useMemo(() => {
@@ -37,9 +42,10 @@ export function DocumentosTable({
 
     return map
   }, [documentos])
+
   return (
     <div className="data-table-wrapper">
-      <table className="data-table">
+      <table className="data-table data-table--compact">
         <thead>
           <tr>
             <th>Fecha</th>
@@ -47,7 +53,6 @@ export function DocumentosTable({
             <th>Tipo</th>
             <th>Receptor</th>
             <th>Total</th>
-            <th>XML</th>
             <th aria-label="Acciones" />
           </tr>
         </thead>
@@ -59,54 +64,43 @@ export function DocumentosTable({
               primerDocumentoPorEnvio.get(documento.dte_envio_id) === documento.id
 
             return (
-            <tr key={documento.id}>
-              <td>{formatDocumentoFecha(documento.emitido_at)}</td>
-              <td>{documento.folio}</td>
-              <td>{documentoTipoLabel(documento)}</td>
-              <td>
-                <div className="documentos-table__receptor">
-                  <span>{documento.razon_social_receptor}</span>
-                  <span className="documentos-table__receptor-rut">{documento.rut_receptor}</span>
-                </div>
-              </td>
-              <td>{formatDocumentoMonto(documento.total)}</td>
-              <td>
-                {documento.xml_disponible && documento.dte_envio_id ? (
-                  <span className="badge badge--success">Disponible</span>
-                ) : (
-                  <span className="badge badge--warning">Sin archivo</span>
-                )}
-              </td>
-              <td className="data-table__actions">
-                <div className="documentos-table__actions">
-                  <Button type="button" variant="secondary" onClick={() => onVerDetalle(documento)}>
-                    Ver detalle
-                  </Button>
-                  {documento.xml_disponible && documento.dte_envio_id ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={downloadingEnvioId === documento.dte_envio_id}
-                      onClick={() => onDownloadXml(documento)}
-                    >
-                      {downloadingEnvioId === documento.dte_envio_id ? 'Descargando…' : 'Descargar XML'}
-                    </Button>
-                  ) : null}
-                  {puedeLimpiarEnvio ? (
-                    <Button
-                      type="button"
-                      className="btn-danger"
-                      disabled={limpiandoEnvioId === documento.dte_envio_id}
-                      onClick={() => onLimpiarEnvio(documento.dte_envio_id!)}
-                    >
-                      {limpiandoEnvioId === documento.dte_envio_id
-                        ? 'Limpiando…'
-                        : `Limpiar envío #${documento.dte_envio_id}`}
-                    </Button>
-                  ) : null}
-                </div>
-              </td>
-            </tr>
+              <tr key={documento.id}>
+                <td className="documentos-table__fecha">{formatDocumentoFecha(documento.emitido_at)}</td>
+                <td>{documento.folio}</td>
+                <td>
+                  <span
+                    className="documentos-table__tipo"
+                    title={`${documento.tipo_documento} — ${documento.tipo_documento_nombre}`}
+                  >
+                    {documento.tipo_documento}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    className="documentos-table__receptor-inline"
+                    title={`${documento.razon_social_receptor} (${documento.rut_receptor})`}
+                  >
+                    {documento.razon_social_receptor}
+                    <span className="documentos-table__receptor-sep"> · </span>
+                    {documento.rut_receptor}
+                  </span>
+                </td>
+                <td>{formatDocumentoMonto(documento.total)}</td>
+                <td className="data-table__actions">
+                  <DocumentoRowActions
+                    documento={documento}
+                    downloadingEnvioId={downloadingEnvioId}
+                    downloadingPdfDocumentoId={downloadingPdfDocumentoId}
+                    limpiandoEnvioId={limpiandoEnvioId}
+                    puedeLimpiarEnvio={Boolean(puedeLimpiarEnvio)}
+                    onVerDetalle={onVerDetalle}
+                    onPreviewPdf={onPreviewPdf}
+                    onPreviewXml={onPreviewXml}
+                    onDownloadXml={onDownloadXml}
+                    onLimpiarEnvio={onLimpiarEnvio}
+                  />
+                </td>
+              </tr>
             )
           })}
         </tbody>

@@ -68,7 +68,7 @@ module Auditoria
     def aplicar_filtros(relation)
       relation = relation.where(categoria: @filtros[:categoria]) if @filtros[:categoria].present?
       relation = relation.where(accion: @filtros[:accion]) if @filtros[:accion].present?
-      relation = relation.where(empresa_id: @filtros[:empresa_id]) if @filtros[:empresa_id].present?
+      relation = filtrar_por_empresa(relation)
       relation = relation.where(actor_user_id: @filtros[:actor_user_id]) if @filtros[:actor_user_id].present?
       relation = relation.where(recurso_tipo: @filtros[:recurso_tipo]) if @filtros[:recurso_tipo].present?
       relation = relation.where(recurso_id: @filtros[:recurso_id]) if @filtros[:recurso_id].present?
@@ -84,6 +84,16 @@ module Auditoria
       else
         AuditEvent::RESULTADO_EXITO
       end
+    end
+
+    def filtrar_por_empresa(relation)
+      return relation unless @filtros[:empresa_id].present?
+
+      if @filtros[:empresa_id].to_s == 'sin_empresa'
+        return relation.where(empresa_id: nil)
+      end
+
+      relation.where(empresa_id: @filtros[:empresa_id])
     end
 
     def filtrar_por_fechas(relation)

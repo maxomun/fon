@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { documentosService } from '@/features/documentos/services/documentosService'
 import type {
+  DocumentoArchivoPreviewTarget,
+} from '@/features/documentos/components/DocumentoArchivoPreviewModal'
+import type {
   DocumentoEmitidoDetail,
   DocumentoEmitidoSummary,
   DocumentosListMeta,
@@ -28,6 +31,7 @@ export function useDocumentosList(empresaId: number) {
   const [isLimpiandoTodos, setIsLimpiandoTodos] = useState(false)
   const [limpiezaError, setLimpiezaError] = useState<string | null>(null)
   const [limpiezaMensaje, setLimpiezaMensaje] = useState<string | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<DocumentoArchivoPreviewTarget | null>(null)
 
   const loadDocumentos = useCallback(async () => {
     if (!Number.isFinite(empresaId) || empresaId <= 0) {
@@ -88,6 +92,34 @@ export function useDocumentosList(empresaId: number) {
     setDetalleDocumento(null)
     setDetalleError(null)
     setIsDetalleLoading(false)
+  }
+
+  function closePreview() {
+    setPreviewTarget(null)
+  }
+
+  function previewPdf(
+    documento: DocumentoEmitidoDetail | DocumentoEmitidoSummary,
+    rutEmisor?: string,
+  ) {
+    setPreviewTarget({
+      kind: 'pdf',
+      documento,
+      rutEmisor,
+    })
+  }
+
+  function previewXml(
+    documento: DocumentoEmitidoDetail | DocumentoEmitidoSummary,
+    dteEnvioId: number,
+    rutEmisor?: string,
+  ) {
+    setPreviewTarget({
+      kind: 'xml',
+      documento,
+      dteEnvioId,
+      rutEmisor,
+    })
   }
 
   async function downloadXml(
@@ -189,6 +221,10 @@ export function useDocumentosList(empresaId: number) {
     closeDetalle,
     downloadXml,
     downloadPdf,
+    previewPdf,
+    previewXml,
+    previewTarget,
+    closePreview,
     downloadingEnvioId,
     downloadingPdfDocumentoId,
     downloadError,

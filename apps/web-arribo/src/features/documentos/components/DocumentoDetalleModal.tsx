@@ -20,6 +20,8 @@ interface DocumentoDetalleModalProps {
   onClose: () => void
   onDownloadXml: (documento: DocumentoEmitidoDetail) => void
   onDownloadPdf: (documento: DocumentoEmitidoDetail) => void
+  onPreviewPdf: (documento: DocumentoEmitidoDetail) => void
+  onPreviewXml: (documento: DocumentoEmitidoDetail) => void
   onLimpiarEnvio: (dteEnvioId: number) => void
 }
 
@@ -35,6 +37,8 @@ export function DocumentoDetalleModal({
   onClose,
   onDownloadXml,
   onDownloadPdf,
+  onPreviewPdf,
+  onPreviewXml,
   onLimpiarEnvio,
 }: DocumentoDetalleModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -155,6 +159,9 @@ export function DocumentoDetalleModal({
             ) : null}
 
             <div className="modal-dialog__actions modal-dialog__actions--wrap">
+              <Button type="button" variant="secondary" onClick={() => onPreviewPdf(documento)}>
+                Ver PDF
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
@@ -164,14 +171,21 @@ export function DocumentoDetalleModal({
                 {downloadingPdfDocumentoId === documento.id ? 'Generando PDF…' : 'Descargar PDF'}
               </Button>
               {documento.xml_disponible && documento.dte_envio_id ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={downloadingEnvioId === documento.dte_envio_id}
-                  onClick={() => onDownloadXml(documento)}
-                >
-                  {downloadingEnvioId === documento.dte_envio_id ? 'Descargando…' : 'Descargar XML firmado'}
-                </Button>
+                <>
+                  <Button type="button" variant="secondary" onClick={() => onPreviewXml(documento)}>
+                    Ver XML
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={downloadingEnvioId === documento.dte_envio_id}
+                    onClick={() => onDownloadXml(documento)}
+                  >
+                    {downloadingEnvioId === documento.dte_envio_id
+                      ? 'Descargando…'
+                      : 'Descargar XML'}
+                  </Button>
+                </>
               ) : null}
               {isFonAdmin && documento.dte_envio_id ? (
                 <Button
