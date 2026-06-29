@@ -9,6 +9,11 @@ import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Empresa, EmpresaInput } from '@/features/empresas/types/empresa.types'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { hasAccesoGlobal } from '@/features/auth/utils/roles'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 type ViewMode = 'list' | 'create' | 'edit'
@@ -36,6 +41,7 @@ export function EmpresasPage() {
   const [empresaToDelete, setEmpresaToDelete] = useState<Empresa | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const { isSelected, select } = useTableRowSelection()
 
   const loadEmpresas = useCallback(async () => {
     setListError(null)
@@ -211,7 +217,7 @@ export function EmpresasPage() {
             <p className="placeholder">No hay empresas registradas.</p>
           ) : (
             <div className="data-table-wrapper">
-              <table className="data-table">
+              <table className="data-table data-table--interactive">
                 <thead>
                   <tr>
                     <th>RUT</th>
@@ -228,11 +234,16 @@ export function EmpresasPage() {
                   {empresas.map((empresa) => (
                     <tr
                       key={empresa.id}
-                      className={
-                        !isFonAdmin && empresa.es_administrador
-                          ? 'data-table__row--selected'
-                          : undefined
-                      }
+                      {...buildInteractiveRowProps({
+                        rowId: empresa.id,
+                        isSelected: isSelected(empresa.id),
+                        onSelect: select,
+                        onDoubleClick: () => openEditForm(empresa),
+                        extraClassName:
+                          !isFonAdmin && empresa.es_administrador
+                            ? 'data-table__row--pinned'
+                            : undefined,
+                      })}
                     >
                       <td>{empresa.rut}</td>
                       <td>{empresa.razon_social}</td>
@@ -251,7 +262,10 @@ export function EmpresasPage() {
                           )}
                         </td>
                       ) : null}
-                      <td>
+                      <td
+                        className="data-table__actions"
+                        onClick={stopRowClickPropagation}
+                      >
                         <EmpresaRowActions
                           empresa={empresa}
                           showFonActions={isFonAdmin}

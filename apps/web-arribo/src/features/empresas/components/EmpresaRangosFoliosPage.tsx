@@ -12,6 +12,11 @@ import {
   formatRangoFolios,
   puedeEliminarRango,
 } from '@/features/empresas/types/rangoFolio.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 export function EmpresaRangosFoliosPage() {
@@ -26,6 +31,7 @@ export function EmpresaRangosFoliosPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
   const [rangoToRemove, setRangoToRemove] = useState<RangoFolio | null>(null)
+  const rowSelection = useTableRowSelection()
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
 
@@ -232,7 +238,7 @@ export function EmpresaRangosFoliosPage() {
           <p className="placeholder">No hay rangos de folios cargados para esta empresa.</p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Tipo</th>
@@ -248,7 +254,14 @@ export function EmpresaRangosFoliosPage() {
               </thead>
               <tbody>
                 {rangos.map((rango) => (
-                  <tr key={rango.id}>
+                  <tr
+                    key={rango.id}
+                    {...buildInteractiveRowProps({
+                      rowId: rango.id,
+                      isSelected: rowSelection.isSelected(rango.id),
+                      onSelect: rowSelection.select,
+                    })}
+                  >
                     <td>
                       {rango.tipo_documento.codigo}
                       {rango.tipo_documento.nombre ? (
@@ -265,7 +278,10 @@ export function EmpresaRangosFoliosPage() {
                     <td>{formatFechaRango(rango.fecha_autorizacion)}</td>
                     <td>{formatFechaRango(rango.fecha_subida)}</td>
                     <td>{rango.archivo}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <Button
                         variant="secondary"
                         disabled={!puedeEliminarRango(rango)}

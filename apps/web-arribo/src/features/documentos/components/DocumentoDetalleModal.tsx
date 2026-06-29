@@ -133,7 +133,7 @@ export function DocumentoDetalleModal({
 
             {documento.lineas.length > 0 ? (
               <div className="data-table-wrapper documento-detalle__lineas">
-                <table className="data-table">
+                <table className="data-table data-table--readonly">
                   <thead>
                     <tr>
                       <th>Ítem</th>

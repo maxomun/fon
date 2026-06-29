@@ -24,6 +24,11 @@ import {
   emptyPersonaAutorizadaInput,
   puedeEliminarPersonaAutorizada,
 } from '@/features/empresas/types/personaAutorizada.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 function formatEstado(activa: boolean) {
@@ -54,6 +59,7 @@ export function EmpresaPersonasAutorizadasPage() {
     null,
   )
   const [personaToRemove, setPersonaToRemove] = useState<PersonaAutorizada | null>(null)
+  const rowSelection = useTableRowSelection()
   const [personaToDelete, setPersonaToDelete] = useState<PersonaAutorizada | null>(null)
   const [personaToEdit, setPersonaToEdit] = useState<PersonaAutorizada | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -475,7 +481,7 @@ export function EmpresaPersonasAutorizadasPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Orden</th>
@@ -491,7 +497,15 @@ export function EmpresaPersonasAutorizadasPage() {
               </thead>
               <tbody>
                 {assignedPersonas.map((persona) => (
-                  <tr key={persona.id}>
+                  <tr
+                    key={persona.id}
+                    {...buildInteractiveRowProps({
+                      rowId: persona.id,
+                      isSelected: rowSelection.isSelected(persona.id),
+                      onSelect: rowSelection.select,
+                      onDoubleClick: () => openEditModal(persona),
+                    })}
+                  >
                     <td>{persona.orden}</td>
                     <td>{persona.rut}</td>
                     <td>{persona.nombre_completo}</td>
@@ -508,7 +522,10 @@ export function EmpresaPersonasAutorizadasPage() {
                     <td>
                       <PersonaAutorizadaOnboardingBadge persona={persona} />
                     </td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <PersonaAutorizadaRowActions
                         persona={persona}
                         variant="assigned"
@@ -642,7 +659,7 @@ export function EmpresaPersonasAutorizadasPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Orden</th>
@@ -655,7 +672,14 @@ export function EmpresaPersonasAutorizadasPage() {
               </thead>
               <tbody>
                 {searchResults.map((persona) => (
-                  <tr key={persona.id}>
+                  <tr
+                    key={persona.id}
+                    {...buildInteractiveRowProps({
+                      rowId: persona.id,
+                      isSelected: rowSelection.isSelected(persona.id),
+                      onSelect: rowSelection.select,
+                    })}
+                  >
                     <td>{persona.orden}</td>
                     <td>{persona.rut}</td>
                     <td>{persona.nombre_completo}</td>
@@ -663,7 +687,10 @@ export function EmpresaPersonasAutorizadasPage() {
                     <td>
                       <PersonaAutorizadaOnboardingBadge persona={persona} />
                     </td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <PersonaAutorizadaRowActions
                         persona={persona}
                         variant="search"

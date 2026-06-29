@@ -15,6 +15,11 @@ import {
   formatFechaHabilitacion,
   puedeQuitarHabilitacion,
 } from '@/features/empresas/types/tipoHabilitado.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 export function EmpresaTiposDocumentosPage() {
@@ -36,6 +41,8 @@ export function EmpresaTiposDocumentosPage() {
   const [updateError, setUpdateError] = useState<string | null>(null)
 
   const [tipoToRemove, setTipoToRemove] = useState<TipoHabilitado | null>(null)
+  const assignedRowSelection = useTableRowSelection()
+  const searchRowSelection = useTableRowSelection()
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
 
@@ -263,7 +270,7 @@ export function EmpresaTiposDocumentosPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Código</th>
@@ -275,12 +282,23 @@ export function EmpresaTiposDocumentosPage() {
               </thead>
               <tbody>
                 {assignedTipos.map((tipo) => (
-                  <tr key={tipo.id}>
+                  <tr
+                    key={tipo.id}
+                    {...buildInteractiveRowProps({
+                      rowId: tipo.id,
+                      isSelected: assignedRowSelection.isSelected(tipo.id),
+                      onSelect: assignedRowSelection.select,
+                      onDoubleClick: () => openEditModal(tipo),
+                    })}
+                  >
                     <td>{tipo.tipo_documento.codigo}</td>
                     <td>{tipo.tipo_documento.nombre}</td>
                     <td>{formatFechaHabilitacion(tipo.fecha_habilitacion)}</td>
                     <td>{tipo.folios_disponibles}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <div className="table-actions">
                         <Button
                           variant="secondary"
@@ -334,7 +352,7 @@ export function EmpresaTiposDocumentosPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Código</th>
@@ -344,10 +362,20 @@ export function EmpresaTiposDocumentosPage() {
               </thead>
               <tbody>
                 {searchResults.map((tipo) => (
-                  <tr key={tipo.id}>
+                  <tr
+                    key={tipo.id}
+                    {...buildInteractiveRowProps({
+                      rowId: tipo.id,
+                      isSelected: searchRowSelection.isSelected(tipo.id),
+                      onSelect: searchRowSelection.select,
+                    })}
+                  >
                     <td>{tipo.codigo}</td>
                     <td>{tipo.nombre}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <Button
                         disabled={assigningTipoId === tipo.id}
                         onClick={() => void handleAssign(tipo)}

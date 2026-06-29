@@ -131,6 +131,8 @@ Rails.application.routes.draw do
       get 'auditoria', to: 'auditoria#index'
       get 'auditoria/:id', to: 'auditoria#show'
 
+      get 'version', to: 'version#show'
+
       # Aquí irán los recursos de la API
       # resources :clientes
       # resources :productos

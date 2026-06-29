@@ -5,6 +5,12 @@ import {
   formatDocumentoMonto,
 } from '@/features/documentos/types/documentoEmitido.types'
 import { DocumentoRowActions } from '@/features/documentos/components/DocumentoRowActions'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  handleInteractiveRowKeyDown,
+  interactiveRowClassName,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 
 interface DocumentosTableProps {
   documentos: DocumentoEmitidoSummary[]
@@ -31,6 +37,7 @@ export function DocumentosTable({
   onPreviewXml,
   onLimpiarEnvio,
 }: DocumentosTableProps) {
+  const { isSelected, select } = useTableRowSelection()
   const primerDocumentoPorEnvio = useMemo(() => {
     const map = new Map<number, number>()
 
@@ -45,7 +52,7 @@ export function DocumentosTable({
 
   return (
     <div className="data-table-wrapper">
-      <table className="data-table data-table--compact">
+      <table className="data-table data-table--compact data-table--interactive">
         <thead>
           <tr>
             <th>Fecha</th>
@@ -64,7 +71,17 @@ export function DocumentosTable({
               primerDocumentoPorEnvio.get(documento.dte_envio_id) === documento.id
 
             return (
-              <tr key={documento.id}>
+              <tr
+                key={documento.id}
+                className={interactiveRowClassName(isSelected(documento.id))}
+                tabIndex={0}
+                aria-selected={isSelected(documento.id)}
+                onClick={() => select(documento.id)}
+                onKeyDown={(event) =>
+                  handleInteractiveRowKeyDown(event, () => select(documento.id))
+                }
+                onDoubleClick={() => onVerDetalle(documento)}
+              >
                 <td className="documentos-table__fecha">{formatDocumentoFecha(documento.emitido_at)}</td>
                 <td>{documento.folio}</td>
                 <td>
@@ -86,7 +103,7 @@ export function DocumentosTable({
                   </span>
                 </td>
                 <td>{formatDocumentoMonto(documento.total)}</td>
-                <td className="data-table__actions">
+                <td className="data-table__actions" onClick={stopRowClickPropagation}>
                   <DocumentoRowActions
                     documento={documento}
                     downloadingEnvioId={downloadingEnvioId}

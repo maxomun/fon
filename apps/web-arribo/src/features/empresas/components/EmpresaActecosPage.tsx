@@ -6,6 +6,11 @@ import { empresaActecosService } from '@/features/empresas/services/empresaActec
 import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Acteco } from '@/features/empresas/types/acteco.types'
 import type { Empresa } from '@/features/empresas/types/empresa.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 function formatAfectoIva(value: boolean) {
@@ -24,6 +29,7 @@ export function EmpresaActecosPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [assigningActecoId, setAssigningActecoId] = useState<number | null>(null)
   const [actecoToRemove, setActecoToRemove] = useState<Acteco | null>(null)
+  const rowSelection = useTableRowSelection()
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -207,7 +213,7 @@ export function EmpresaActecosPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Código</th>
@@ -219,12 +225,22 @@ export function EmpresaActecosPage() {
               </thead>
               <tbody>
                 {assignedActecos.map((acteco) => (
-                  <tr key={acteco.id}>
+                  <tr
+                    key={acteco.id}
+                    {...buildInteractiveRowProps({
+                      rowId: acteco.id,
+                      isSelected: rowSelection.isSelected(acteco.id),
+                      onSelect: rowSelection.select,
+                    })}
+                  >
                     <td>{acteco.codigo}</td>
                     <td>{acteco.nombre}</td>
                     <td>{acteco.grupo_acteco.nombre}</td>
                     <td>{formatAfectoIva(acteco.afecto_iva)}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <Button
                         variant="secondary"
                         disabled={isRemoving && actecoToRemove?.id === acteco.id}
@@ -261,7 +277,7 @@ export function EmpresaActecosPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Código</th>
@@ -273,12 +289,22 @@ export function EmpresaActecosPage() {
               </thead>
               <tbody>
                 {searchResults.map((acteco) => (
-                  <tr key={acteco.id}>
+                  <tr
+                    key={acteco.id}
+                    {...buildInteractiveRowProps({
+                      rowId: acteco.id,
+                      isSelected: rowSelection.isSelected(acteco.id),
+                      onSelect: rowSelection.select,
+                    })}
+                  >
                     <td>{acteco.codigo}</td>
                     <td>{acteco.nombre}</td>
                     <td>{acteco.grupo_acteco.nombre}</td>
                     <td>{formatAfectoIva(acteco.afecto_iva)}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <Button
                         disabled={assigningActecoId === acteco.id}
                         onClick={() => void handleAssign(acteco)}

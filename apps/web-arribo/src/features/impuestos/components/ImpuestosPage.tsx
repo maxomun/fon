@@ -24,6 +24,11 @@ import {
 } from '@/features/impuestos/types/impuestoValor.types'
 import { paisesService } from '@/features/empresas/services/paisesService'
 import { findPaisChile, type Pais } from '@/features/empresas/types/pais.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 export function ImpuestosPage() {
@@ -32,6 +37,7 @@ export function ImpuestosPage() {
   const [impuestos, setImpuestos] = useState<Impuesto[]>([])
   const [selectedImpuesto, setSelectedImpuesto] = useState<Impuesto | null>(null)
   const [valores, setValores] = useState<ImpuestoValor[]>([])
+  const valorRowSelection = useTableRowSelection()
 
   const [isLoadingPaises, setIsLoadingPaises] = useState(true)
   const [isLoadingImpuestos, setIsLoadingImpuestos] = useState(false)
@@ -438,7 +444,7 @@ export function ImpuestosPage() {
           </p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Abreviación</th>
@@ -449,17 +455,25 @@ export function ImpuestosPage() {
               </thead>
               <tbody>
                 {impuestos.map((impuesto) => {
-                  const isSelected = selectedImpuesto?.id === impuesto.id
+                  const isImpuestoSelected = selectedImpuesto?.id === impuesto.id
 
                   return (
                     <tr
                       key={impuesto.id}
-                      className={isSelected ? 'data-table__row--selected' : undefined}
+                      {...buildInteractiveRowProps({
+                        rowId: impuesto.id,
+                        isSelected: isImpuestoSelected,
+                        onSelect: (_id) => setSelectedImpuesto(impuesto),
+                        onDoubleClick: () => openEditImpuestoModal(impuesto),
+                      })}
                     >
                       <td>{impuesto.abreviacion}</td>
                       <td>{impuesto.nombre}</td>
                       <td>{formatValorVigente(impuesto.valor_vigente)}</td>
-                      <td>
+                      <td
+                        className="data-table__actions"
+                        onClick={stopRowClickPropagation}
+                      >
                         <div className="table-actions">
                           <Button
                             variant="secondary"
@@ -513,7 +527,7 @@ export function ImpuestosPage() {
             </p>
           ) : (
             <div className="data-table-wrapper">
-              <table className="data-table">
+              <table className="data-table data-table--interactive">
                 <thead>
                   <tr>
                     <th>Valor (%)</th>
@@ -525,12 +539,23 @@ export function ImpuestosPage() {
                 </thead>
                 <tbody>
                   {valores.map((valor) => (
-                    <tr key={valor.id}>
+                    <tr
+                      key={valor.id}
+                      {...buildInteractiveRowProps({
+                        rowId: valor.id,
+                        isSelected: valorRowSelection.isSelected(valor.id),
+                        onSelect: valorRowSelection.select,
+                        onDoubleClick: () => openEditValorModal(valor),
+                      })}
+                    >
                       <td>{valor.valor}</td>
                       <td>{formatDateTime(valor.fecha_activacion)}</td>
                       <td>{formatDateTime(valor.fecha_caducacion)}</td>
                       <td>{formatSiNo(valor.vigente)}</td>
-                      <td>
+                      <td
+                        className="data-table__actions"
+                        onClick={stopRowClickPropagation}
+                      >
                         <div className="table-actions">
                           <Button
                             variant="secondary"

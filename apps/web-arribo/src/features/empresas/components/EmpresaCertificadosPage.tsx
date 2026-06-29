@@ -8,6 +8,11 @@ import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Certificado } from '@/features/empresas/types/certificado.types'
 import type { Empresa } from '@/features/empresas/types/empresa.types'
 import type { PersonaAutorizada } from '@/features/empresas/types/personaAutorizada.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 function formatDate(value: string | null) {
@@ -39,6 +44,7 @@ export function EmpresaCertificadosPage() {
   const [certificadoToDeactivate, setCertificadoToDeactivate] = useState<Certificado | null>(
     null,
   )
+  const rowSelection = useTableRowSelection()
   const [isDeactivating, setIsDeactivating] = useState(false)
   const [deactivateError, setDeactivateError] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -300,7 +306,7 @@ export function EmpresaCertificadosPage() {
           <p className="placeholder">No hay certificados cargados para esta empresa.</p>
         ) : (
           <div className="data-table-wrapper">
-            <table className="data-table">
+            <table className="data-table data-table--interactive">
               <thead>
                 <tr>
                   <th>Persona</th>
@@ -315,7 +321,14 @@ export function EmpresaCertificadosPage() {
               </thead>
               <tbody>
                 {certificados.map((certificado) => (
-                  <tr key={certificado.id}>
+                  <tr
+                    key={certificado.id}
+                    {...buildInteractiveRowProps({
+                      rowId: certificado.id,
+                      isSelected: rowSelection.isSelected(certificado.id),
+                      onSelect: rowSelection.select,
+                    })}
+                  >
                     <td>{certificado.persona.nombre_completo}</td>
                     <td>{certificado.persona.orden}</td>
                     <td>{formatDate(certificado.fecha_adjuncion)}</td>
@@ -323,7 +336,10 @@ export function EmpresaCertificadosPage() {
                     <td>{formatSiNo(certificado.completo)}</td>
                     <td>{formatSiNo(certificado.utilizable_para_firma)}</td>
                     <td>{formatDate(certificado.fecha_caducacion)}</td>
-                    <td>
+                    <td
+                      className="data-table__actions"
+                      onClick={stopRowClickPropagation}
+                    >
                       <div className="table-actions">
                         <Button
                           variant="secondary"

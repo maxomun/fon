@@ -13,6 +13,11 @@ import type {
 } from '@/features/usuarios/types/usuario.types'
 import { usuarioRolesLabel, usuarioTipoLabel } from '@/features/usuarios/types/usuario.types'
 import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 type FormMode = 'create' | 'edit' | null
@@ -48,6 +53,7 @@ export function UsuariosPage() {
   const [updatingEstadoId, setUpdatingEstadoId] = useState<number | null>(null)
 
   const [reenviandoAccesoId, setReenviandoAccesoId] = useState<number | null>(null)
+  const { isSelected, select } = useTableRowSelection()
 
   const loadUsuarios = useCallback(async () => {
     setListError(null)
@@ -264,7 +270,7 @@ export function UsuariosPage() {
         <p className="page-empty">No hay usuarios que coincidan con los filtros.</p>
       ) : (
         <div className="data-table-wrapper">
-          <table className="data-table">
+          <table className="data-table data-table--interactive">
             <thead>
               <tr>
                 <th>Nombre</th>
@@ -277,7 +283,15 @@ export function UsuariosPage() {
             </thead>
             <tbody>
               {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
+                <tr
+                  key={usuario.id}
+                  {...buildInteractiveRowProps({
+                    rowId: usuario.id,
+                    isSelected: isSelected(usuario.id),
+                    onSelect: select,
+                    onDoubleClick: () => void openDetalleModal(usuario),
+                  })}
+                >
                   <td>{usuario.nombre_completo ?? '—'}</td>
                   <td>{usuario.email}</td>
                   <td>{usuarioRolesLabel(usuario)}</td>
@@ -297,7 +311,7 @@ export function UsuariosPage() {
                       {usuario.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td className="data-table__actions">
+                  <td className="data-table__actions" onClick={stopRowClickPropagation}>
                     <UsuarioRowActions
                       usuario={usuario}
                       isCurrentUser={currentUser?.id === usuario.id}

@@ -5,6 +5,12 @@ import {
   formatAuditDateTime,
   resultadoLabel,
 } from '@/features/auditoria/types/auditEvent.types'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  handleInteractiveRowKeyDown,
+  interactiveRowClassName,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 
 interface AuditoriaTableProps {
   eventos: AuditEventSummary[]
@@ -17,9 +23,11 @@ export function AuditoriaTable({
   showEmpresaColumn = false,
   onVerDetalle,
 }: AuditoriaTableProps) {
+  const { isSelected, select } = useTableRowSelection()
+
   return (
     <div className="data-table-wrapper">
-      <table className="data-table">
+      <table className="data-table data-table--interactive">
         <thead>
           <tr>
             <th>Fecha</th>
@@ -33,7 +41,15 @@ export function AuditoriaTable({
         </thead>
         <tbody>
           {eventos.map((evento) => (
-            <tr key={evento.id}>
+            <tr
+              key={evento.id}
+              className={interactiveRowClassName(isSelected(evento.id))}
+              tabIndex={0}
+              aria-selected={isSelected(evento.id)}
+              onClick={() => select(evento.id)}
+              onKeyDown={(event) => handleInteractiveRowKeyDown(event, () => select(evento.id))}
+              onDoubleClick={() => onVerDetalle(evento)}
+            >
               <td>{formatAuditDateTime(evento.created_at)}</td>
               <td>
                 <div className="auditoria-table__actor">
@@ -62,7 +78,7 @@ export function AuditoriaTable({
                   {resultadoLabel(evento.resultado)}
                 </span>
               </td>
-              <td className="data-table__actions">
+              <td className="data-table__actions" onClick={stopRowClickPropagation}>
                 <Button type="button" variant="secondary" onClick={() => onVerDetalle(evento)}>
                   Ver detalle
                 </Button>

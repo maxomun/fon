@@ -20,6 +20,11 @@ import {
 } from '@/features/productos/types/producto.types'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { canAdministrarEmpresa } from '@/features/auth/utils/roles'
+import { useTableRowSelection } from '@/hooks/useTableRowSelection'
+import {
+  buildInteractiveRowProps,
+  stopRowClickPropagation,
+} from '@/lib/interactiveTableRow'
 import { ApiError } from '@/services/apiClient'
 
 type FormMode = 'create' | 'edit' | null
@@ -55,6 +60,7 @@ export function EmpresaProductosPage() {
   const [productoToDelete, setProductoToDelete] = useState<Producto | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const { isSelected, select } = useTableRowSelection()
 
   const loadData = useCallback(async () => {
     if (!Number.isFinite(empresaId) || empresaId <= 0) {
@@ -102,6 +108,7 @@ export function EmpresaProductosPage() {
 
   function openEditModal(producto: Producto) {
     setSelectedProducto(producto)
+    select(producto.id)
     setFormError(null)
     setFormMode('edit')
   }
@@ -232,7 +239,7 @@ export function EmpresaProductosPage() {
             <p className="page-empty">No hay productos que coincidan con los filtros.</p>
           ) : (
             <div className="data-table-wrapper">
-              <table className="data-table">
+              <table className="data-table data-table--interactive">
                 <thead>
                   <tr>
                     <th>Código</th>
@@ -246,7 +253,15 @@ export function EmpresaProductosPage() {
                 </thead>
                 <tbody>
                   {productos.map((producto) => (
-                    <tr key={producto.id}>
+                    <tr
+                      key={producto.id}
+                      {...buildInteractiveRowProps({
+                        rowId: producto.id,
+                        isSelected: isSelected(producto.id),
+                        onSelect: select,
+                        onDoubleClick: canEdit ? () => openEditModal(producto) : undefined,
+                      })}
+                    >
                       <td>{producto.codigo}</td>
                       <td>{producto.nombre}</td>
                       <td>{formatPrecioProducto(producto.precio_unitario)}</td>
@@ -269,7 +284,10 @@ export function EmpresaProductosPage() {
                         ) : null}
                       </td>
                       {canEdit ? (
-                        <td className="data-table__actions">
+                        <td
+                          className="data-table__actions"
+                          onClick={stopRowClickPropagation}
+                        >
                           <ProductoRowActions
                             producto={producto}
                             canEdit={canEdit}
