@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'nokogiri'
+
 module Dte
   module Pdf
     # Arma el view-model para la plantilla HTML del PDF (sin recalcular totales del documento).
@@ -17,14 +19,16 @@ module Dte
         raise ArgumentError, 'No se pudieron obtener totales del documento' unless totales
 
         timbre = timbre_payload
+        emisor = emisor_payload
 
         {
           tipo_dte: documento.tipo_documento_codigo,
           tipo_dte_nombre: documento.tipo_habilitado.tipo_documento.nombre,
           folio: documento.folio,
+          folio_formateado: Formateador.folio(documento.folio),
           fecha_emision: totales[:fecha_emision] || fecha_emision_fallback,
           sucursal: '',
-          emisor: emisor_payload,
+          emisor: emisor,
           receptor: receptor_payload,
           lineas: lineas_payload,
           globales: globales_payload,
@@ -47,14 +51,41 @@ module Dte
       attr_reader :documento
 
       def emisor_payload
-        {
+        base = {
           razon_social: documento.razon_social_emisor,
           rut: Formateador.rut(documento.rut_emisor),
+          rut_formateado: Formateador.rut_con_puntos(documento.rut_emisor),
           giro: documento.giro_emisor,
           direccion: documento.direccion_emisor,
+          telefono: documento.empresa.telefono1.to_s.strip,
+          correo: '',
           comuna: '',
           ciudad: ''
         }
+
+        merge_emisor_desde_xml(base)
+      end
+
+      def merge_emisor_desde_xml(base)
+        xml = documento.dte_envio&.xml_firmado
+        return base unless xml&.attached?
+
+        doc = Nokogiri::XML(xml.download)
+        doc.encoding = 'ISO-8859-1'
+        ns = { 'xmlns' => GeneradorXml::NAMESPACE }
+
+        emisor_nodo = doc.xpath('//xmlns:DTE', ns).find do |dte|
+          dte.at_xpath('.//xmlns:IdDoc/xmlns:Folio', ns)&.text.to_i == documento.folio
+        end&.at_xpath('.//xmlns:Emisor', ns)
+
+        return base unless emisor_nodo
+
+        base.merge(
+          telefono: base[:telefono].presence || emisor_nodo.at_xpath('xmlns:Telefono', ns)&.text.to_s.strip,
+          correo: emisor_nodo.at_xpath('xmlns:CorreoEmisor', ns)&.text.to_s.strip,
+          comuna: emisor_nodo.at_xpath('xmlns:CmnaOrigen', ns)&.text.to_s.strip,
+          ciudad: emisor_nodo.at_xpath('xmlns:CiudadOrigen', ns)&.text.to_s.strip
+        )
       end
 
       def receptor_payload

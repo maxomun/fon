@@ -22,6 +22,24 @@ module Dte
       def rut(valor)
         valor.to_s.gsub(/[.\s]/, '')
       end
+
+      def rut_con_puntos(valor)
+        limpio = rut(valor).upcase
+        return limpio if limpio.empty?
+
+        cuerpo, dv = limpio.split('-', 2)
+        if dv.nil?
+          cuerpo = limpio[0..-2]
+          dv = limpio[-1]
+        end
+
+        cuerpo_formateado = cuerpo.reverse.gsub(/(\d{3})(?=\d)/, '\\1.').reverse
+        "#{cuerpo_formateado}-#{dv}"
+      end
+
+      def folio(valor)
+        valor.to_i.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1.').reverse
+      end
     end
   end
 end

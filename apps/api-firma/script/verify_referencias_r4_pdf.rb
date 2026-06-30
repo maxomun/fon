@@ -33,13 +33,17 @@ module VerifyReferenciasR4Pdf
       tipo_dte: 33,
       tipo_dte_nombre: 'FACTURA ELECTRÓNICA',
       folio: 100,
+      folio_formateado: '100',
       fecha_emision: '2026-06-29',
       sucursal: '',
       emisor: {
         razon_social: 'Empresa Demo SpA',
-        rut: '12.345.678-9',
+        rut: '123456789',
+        rut_formateado: '12.345.678-9',
         giro: 'Servicios',
         direccion: 'Calle 123',
+        telefono: '',
+        correo: '',
         comuna: '',
         ciudad: ''
       },

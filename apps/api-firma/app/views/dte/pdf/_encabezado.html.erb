@@ -1,16 +1,36 @@
 <div class="header">
-  <div class="logo">
-    <% if presentacion[:logo_data_uri].present? %>
-      <img src="<%= presentacion[:logo_data_uri] %>" alt="" />
-    <% end %>
-  </div>
-  <div class="dte">
-    <h2><%= presentacion[:tipo_dte_nombre] %></h2>
-    <p><b>Tipo DTE:</b> <%= presentacion[:tipo_dte] %></p>
-    <p><b>Folio:</b> <%= presentacion[:folio] %></p>
-    <% if presentacion[:sucursal].present? %>
-      <p><b>Sucursal:</b> <%= presentacion[:sucursal] %></p>
-    <% end %>
-    <p><b>Fecha:</b> <%= presentacion[:fecha_emision] %></p>
-  </div>
+  <table class="header-table" role="presentation" cellspacing="0" cellpadding="0">
+    <tr>
+      <td class="header-logo">
+        <% if presentacion[:logo_data_uri].present? %>
+          <img src="<%= presentacion[:logo_data_uri] %>" alt="" />
+        <% end %>
+      </td>
+      <td class="header-emisor">
+        <p class="emisor-nombre"><%= presentacion[:emisor][:razon_social] %></p>
+        <p class="emisor-giro"><%= presentacion[:emisor][:giro] %></p>
+        <p class="emisor-contacto">
+          <%= presentacion[:emisor][:direccion] %>
+          <% if presentacion[:emisor][:telefono].present? %>
+            &nbsp;•&nbsp; Fono <%= presentacion[:emisor][:telefono] %>
+          <% end %>
+          <% if presentacion[:emisor][:ciudad].present? %>
+            &nbsp;•&nbsp; <%= presentacion[:emisor][:ciudad].upcase %>
+          <% elsif presentacion[:emisor][:comuna].present? %>
+            &nbsp;•&nbsp; <%= presentacion[:emisor][:comuna].upcase %>
+          <% end %>
+        </p>
+        <% if presentacion[:emisor][:correo].present? %>
+          <p class="emisor-correo"><%= presentacion[:emisor][:correo] %></p>
+        <% end %>
+      </td>
+      <td class="header-dte">
+        <div class="dte-caja">
+          <p class="dte-rut">R.U.T.: <%= presentacion[:emisor][:rut_formateado] %></p>
+          <p class="dte-tipo"><%= presentacion[:tipo_dte_nombre] %></p>
+          <p class="dte-folio">N° <%= presentacion[:folio_formateado] %></p>
+        </div>
+      </td>
+    </tr>
+  </table>
 </div>
