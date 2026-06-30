@@ -1,0 +1,25 @@
+<% if presentacion[:referencias].any? %>
+  <div class="box box-fija">
+    <div class="section-title">REFERENCIAS</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Folio</th>
+          <th>Fecha</th>
+          <th>Motivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% presentacion[:referencias].each do |referencia| %>
+          <tr>
+            <td><%= referencia[:tipo] %></td>
+            <td><%= referencia[:folio] %></td>
+            <td><%= referencia[:fecha] %></td>
+            <td><%= referencia[:razon] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

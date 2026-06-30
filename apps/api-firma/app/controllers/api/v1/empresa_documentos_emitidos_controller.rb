@@ -27,6 +27,33 @@ module Api
         render_success(data: documento_emitido_detail_payload(@documento))
       end
 
+      # GET /api/v1/empresas/:empresa_id/documentos_emitidos/buscar_para_referencia
+      # ?tipo_documento=52&q=&limit=20&rut_receptor=
+      def buscar_para_referencia
+        tipo_codigo = params[:tipo_documento].to_s.strip
+        if tipo_codigo.blank?
+          return render_error('tipo_documento es requerido', :unprocessable_entity, code: 'VALIDATION_ERROR')
+        end
+
+        tipo_referencia = TipoReferenciaDocumento.activos.find_by(codigo_sii: tipo_codigo)
+        unless tipo_referencia&.categoria == 'DTE'
+          return render_error(
+            'tipo_documento debe ser un DTE referenciable emitido en FacturaOn',
+            :unprocessable_entity,
+            code: 'VALIDATION_ERROR'
+          )
+        end
+
+        documentos = scope_buscar_para_referencia(tipo_codigo).limit(limite_buscar_para_referencia)
+        usos_por_origen = referencias_por_documento_origen(documentos.map(&:id))
+
+        render_success(
+          data: documentos.map do |documento|
+            documento_para_referencia_payload(documento, usos_por_origen[documento.id])
+          end
+        )
+      end
+
       def pdf
         force = ActiveModel::Type::Boolean.new.cast(params[:force])
         resultado = Dte::Pdf::Generador.call(documento: @documento, force: force)
@@ -55,6 +82,8 @@ module Api
         @documento = @empresa.documento_emitidos
                              .dte
                              .includes(:usuario, :dte_envio, :empresa, :documento_descuentos_recargos_globales,
+                                       documento_emitido_referencias: :tipo_referencia_documento,
+                                       dte_envio: { xml_firmado_attachment: :blob },
                                        tipo_habilitado: :tipo_documento, venta_detalles: :producto)
                              .find(params[:id])
       end
@@ -106,6 +135,47 @@ module Api
           total_count: total_count,
           per_page: per_page
         }
+      end
+
+      def scope_buscar_para_referencia(tipo_codigo)
+        scope = @empresa.documento_emitidos
+                        .dte
+                        .where.not(dte_envio_id: nil)
+                        .joins(tipo_habilitado: :tipo_documento)
+                        .where(tipo_documentos: { codigo: tipo_codigo })
+                        .left_joins(:dte_envio)
+                        .includes(:dte_envio, tipo_habilitado: :tipo_documento)
+
+        if params[:q].present?
+          termino = "%#{params[:q].to_s.strip}%"
+          scope = scope.where(
+            'CAST(documento_emitidos.folio AS TEXT) LIKE :q OR documento_emitidos.rut_receptor ILIKE :q OR documento_emitidos.razon_social_receptor ILIKE :q',
+            q: termino
+          )
+        end
+
+        if params[:rut_receptor].present?
+          rut = params[:rut_receptor].to_s.gsub(/[.\s]/, '')
+          scope = scope.where('REPLACE(REPLACE(documento_emitidos.rut_receptor, \'.\', \'\'), \' \', \'\') ILIKE ?', "%#{rut}%")
+        end
+
+        scope.order(Arel.sql('dte_envios.created_at DESC NULLS LAST'), 'documento_emitidos.id DESC')
+      end
+
+      def limite_buscar_para_referencia
+        valor = params[:limit].to_i
+        valor = 20 if valor <= 0
+
+        [valor, 50].min
+      end
+
+      def referencias_por_documento_origen(origen_ids)
+        return {} if origen_ids.empty?
+
+        DocumentoEmitidoReferencia
+          .where(documento_emitido_origen_id: origen_ids)
+          .includes(documento_emitido: { tipo_habilitado: :tipo_documento })
+          .group_by(&:documento_emitido_origen_id)
       end
     end
   end

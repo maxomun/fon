@@ -10,6 +10,7 @@ module Dte
         { tipo_habilitado: :tipo_documento },
         { venta_detalles: :producto },
         :documento_descuentos_recargos_globales,
+        { documento_emitido_referencias: :tipo_referencia_documento },
         { dte_envio: { xml_firmado_attachment: :blob } }
       ].freeze
 

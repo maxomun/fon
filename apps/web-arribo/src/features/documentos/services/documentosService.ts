@@ -3,6 +3,7 @@ import type {
   DocumentoDetailResponse,
   DocumentoEmitidoSummary,
   DocumentosListResponse,
+  DocumentosParaReferenciaResponse,
   LimpiarEnvioResponse,
   LimpiarTodosEnviosResponse,
 } from '@/features/documentos/types/documentoEmitido.types'
@@ -120,6 +121,29 @@ export const documentosService = {
   limpiarTodosEnvios(empresaId: number) {
     return authenticatedClient.delete<LimpiarTodosEnviosResponse>(
       `${dteEnviosBaseUrl(empresaId)}/limpiar_todos`,
+    )
+  },
+
+  buscarParaReferencia(
+    empresaId: number,
+    tipoDocumento: string,
+    query = '',
+    options?: { rutReceptor?: string; limit?: number },
+  ) {
+    const params = new URLSearchParams()
+    params.set('tipo_documento', tipoDocumento.trim())
+    params.set('limit', String(options?.limit ?? 20))
+
+    if (query.trim()) {
+      params.set('q', query.trim())
+    }
+
+    if (options?.rutReceptor?.trim()) {
+      params.set('rut_receptor', options.rutReceptor.trim())
+    }
+
+    return authenticatedClient.get<DocumentosParaReferenciaResponse>(
+      `${baseUrl(empresaId)}/buscar_para_referencia?${params.toString()}`,
     )
   },
 }

@@ -86,6 +86,9 @@ Rails.application.routes.draw do
         resources :documentos_emitidos,
                   only: [:index, :show],
                   controller: 'empresa_documentos_emitidos' do
+          collection do
+            get :buscar_para_referencia
+          end
           member do
             get :pdf
           end
@@ -104,6 +107,7 @@ Rails.application.routes.draw do
       end
 
       resources :tipo_documentos, only: [:index]
+      resources :tipo_referencia_documentos, only: [:index]
 
       resources :personas_autorizadas, only: [:index, :show, :create, :update, :destroy] do
         member do

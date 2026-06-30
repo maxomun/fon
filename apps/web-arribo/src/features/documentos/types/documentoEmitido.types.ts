@@ -23,12 +23,50 @@ export interface DocumentoEmitidoLinea {
   subtotal_con_impuesto: string
 }
 
+export interface DocumentoEmitidoReferencia {
+  nro_linea: number
+  orden: number
+  tipo_documento_referencia: string
+  tipo_documento_referencia_nombre: string
+  folio_referencia: string
+  fecha_referencia: string
+  codigo_referencia: number | null
+  razon_referencia: string | null
+  documento_emitido_origen_id: number | null
+}
+
+export interface DocumentoReferenciaUso {
+  documento_emitido_id: number
+  folio: number
+  tipo_documento: string
+  tipo_documento_nombre: string
+}
+
+export interface DocumentoParaReferencia {
+  id: number
+  folio: number
+  tipo_documento: string
+  tipo_documento_nombre: string
+  fecha_emision: string | null
+  rut_receptor: string
+  razon_social_receptor: string
+  total: string
+  referenciado_en: DocumentoReferenciaUso[]
+}
+
+export interface DocumentosParaReferenciaResponse {
+  success?: boolean
+  data: DocumentoParaReferencia[]
+}
+
 export interface DocumentoEmitidoDetail extends DocumentoEmitidoSummary {
   rut_emisor: string
   razon_social_emisor: string
   giro_receptor: string
   direccion_receptor: string
+  fecha_emision: string | null
   lineas: DocumentoEmitidoLinea[]
+  referencias: DocumentoEmitidoReferencia[]
 }
 
 export interface DocumentosListMeta {
@@ -90,6 +128,47 @@ export function formatDocumentoFecha(iso: string | null) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
+}
+
+export function formatDocumentoFechaSolo(fecha: string | null) {
+  if (!fecha) {
+    return '—'
+  }
+
+  const date = new Date(`${fecha}T12:00:00`)
+  if (Number.isNaN(date.getTime())) {
+    return fecha
+  }
+
+  return date.toLocaleDateString('es-CL')
+}
+
+export function referenciaTipoLabel(
+  referencia: Pick<DocumentoEmitidoReferencia, 'tipo_documento_referencia' | 'tipo_documento_referencia_nombre'>,
+) {
+  return `${referencia.tipo_documento_referencia} — ${referencia.tipo_documento_referencia_nombre}`
+}
+
+export function documentoPuedeReferenciarseEnEmision(tipoDocumento: string) {
+  return ['33', '34', '39', '41', '46', '52', '56', '61', '110', '111', '112'].includes(tipoDocumento)
+}
+
+export function buildReferenciaDesdeDocumentoEmitido(
+  documento: Pick<
+    DocumentoEmitidoDetail,
+    'id' | 'tipo_documento' | 'folio' | 'fecha_emision' | 'emitido_at'
+  >,
+) {
+  const fecha =
+    documento.fecha_emision?.slice(0, 10) ||
+    (documento.emitido_at ? documento.emitido_at.slice(0, 10) : '')
+
+  return {
+    documento_emitido_origen_id: documento.id,
+    tipo_documento_referencia: documento.tipo_documento,
+    folio_referencia: String(documento.folio),
+    fecha_referencia: fecha,
+  }
 }
 
 export function formatDocumentoMonto(valor: string) {

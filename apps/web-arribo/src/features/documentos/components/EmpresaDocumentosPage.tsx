@@ -192,6 +192,7 @@ export function EmpresaDocumentosPage() {
       </section>
 
       <DocumentoDetalleModal
+        empresaId={empresaId}
         documento={detalleDocumento}
         isOpen={isDetalleOpen}
         isLoading={isDetalleLoading}

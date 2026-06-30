@@ -1,14 +1,22 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import type { DocumentoEmitidoDetail } from '@/features/documentos/types/documentoEmitido.types'
 import {
+  buildReferenciaDesdeDocumentoEmitido,
+  documentoPuedeReferenciarseEnEmision,
   documentoTipoLabel,
   formatDocumentoFecha,
+  formatDocumentoFechaSolo,
   formatDocumentoMonto,
+  referenciaTipoLabel,
 } from '@/features/documentos/types/documentoEmitido.types'
+import type { EmisionReferenciaDesdeDocumento } from '@/features/emision/types/emision.types'
+import { razonReferenciaPorDefecto } from '@/features/emision/utils/referenciaEmitidoInterno'
 
 interface DocumentoDetalleModalProps {
+  empresaId: number
   documento: DocumentoEmitidoDetail | null
   isOpen: boolean
   isLoading: boolean
@@ -26,6 +34,7 @@ interface DocumentoDetalleModalProps {
 }
 
 export function DocumentoDetalleModal({
+  empresaId,
   documento,
   isOpen,
   isLoading,
@@ -41,6 +50,7 @@ export function DocumentoDetalleModal({
   onPreviewXml,
   onLimpiarEnvio,
 }: DocumentoDetalleModalProps) {
+  const navigate = useNavigate()
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
 
@@ -69,6 +79,23 @@ export function DocumentoDetalleModal({
     if (!isLoading) {
       onClose()
     }
+  }
+
+  function handleReferenciarEnEmision() {
+    if (!documento) {
+      return
+    }
+
+    const base = buildReferenciaDesdeDocumentoEmitido(documento)
+    const referenciaDesdeDocumento: EmisionReferenciaDesdeDocumento = {
+      ...base,
+      razon_referencia: razonReferenciaPorDefecto(documento.tipo_documento),
+    }
+
+    onClose()
+    navigate(`/empresas/${empresaId}/emitir/nuevo`, {
+      state: { referenciaDesdeDocumento },
+    })
   }
 
   return createPortal(
@@ -158,7 +185,42 @@ export function DocumentoDetalleModal({
               </div>
             ) : null}
 
+            {documento.referencias.length > 0 ? (
+              <div className="data-table-wrapper documento-detalle__referencias">
+                <h3 className="documento-detalle__section-title">Referencias</h3>
+                <table className="data-table data-table--readonly">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Tipo</th>
+                      <th>Folio</th>
+                      <th>Fecha</th>
+                      <th>Razón</th>
+                      <th>Cod. ref.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {documento.referencias.map((referencia) => (
+                      <tr key={`${referencia.nro_linea}-${referencia.folio_referencia}`}>
+                        <td>{referencia.nro_linea}</td>
+                        <td>{referenciaTipoLabel(referencia)}</td>
+                        <td>{referencia.folio_referencia}</td>
+                        <td>{formatDocumentoFechaSolo(referencia.fecha_referencia)}</td>
+                        <td>{referencia.razon_referencia?.trim() || '—'}</td>
+                        <td>{referencia.codigo_referencia ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+
             <div className="modal-dialog__actions modal-dialog__actions--wrap">
+              {documentoPuedeReferenciarseEnEmision(documento.tipo_documento) ? (
+                <Button type="button" variant="secondary" onClick={handleReferenciarEnEmision}>
+                  Referenciar en emisión
+                </Button>
+              ) : null}
               <Button type="button" variant="secondary" onClick={() => onPreviewPdf(documento)}>
                 Ver PDF
               </Button>

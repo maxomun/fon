@@ -162,6 +162,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000004) do
     t.index ["documento_emitido_id"], name: "idx_doc_dr_globales_documento"
   end
 
+  create_table "documento_emitido_referencias", id: :serial, comment: "Referencias SII por DTE emitido (NroLinRef, TpoDocRef, FolioRef, FchRef, CodRef, RazonRef).", force: :cascade do |t|
+    t.integer "documento_emitido_id", null: false
+    t.integer "nro_linea", null: false
+    t.integer "tipo_referencia_documento_id", null: false
+    t.string "folio_referencia", limit: 18, null: false
+    t.date "fecha_referencia", null: false
+    t.integer "codigo_referencia", limit: 2
+    t.string "razon_referencia", limit: 90
+    t.integer "documento_emitido_origen_id", comment: "Opcional: FK al DTE emitido en FacturaOn cuando la referencia apunta a un documento interno."
+    t.integer "orden", null: false
+    t.index ["documento_emitido_id", "nro_linea"], name: "uq_doc_emitido_referencias_documento_nro_linea", unique: true
+    t.index ["documento_emitido_id"], name: "idx_doc_emitido_referencias_documento"
+  end
+
   create_table "documento_emitidos", id: :serial, comment: "Documentos DTE, apunta a un documento en el sistema origen.", force: :cascade do |t|
     t.integer "empresa_id", null: false, comment: "Codigo intenro de la empresa que emitio el documento (facturaon soporta asi multiples empresas)"
     t.integer "folio", null: false, comment: "Numero de folio del DTE"
@@ -396,6 +410,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000004) do
     t.unique_constraint ["tipo_documento_id", "empresa_id"], name: "uq_habilitados"
   end
 
+  create_table "tipo_referencia_documentos", id: :serial, comment: "Catálogo SII de TpoDocRef para nodos <Referencia> en DTE (emisión y futuras NC/ND).", force: :cascade do |t|
+    t.string "codigo_sii", limit: 10, null: false
+    t.string "nombre", limit: 100, null: false
+    t.string "categoria", limit: 30, null: false, comment: "DTE | DOCUMENTO_COMERCIAL | DOCUMENTO_INTERNO | OTRO"
+    t.boolean "activo", default: true, null: false
+    t.boolean "requiere_folio", default: true, null: false
+    t.boolean "requiere_fecha", default: true, null: false
+    t.boolean "permite_codigo_referencia", default: false, null: false
+    t.string "observacion", limit: 250
+    t.index ["codigo_sii"], name: "uq_tipo_referencia_documentos_codigo", unique: true
+  end
+
   create_table "token_blacklists", force: :cascade do |t|
     t.string "jti", null: false
     t.datetime "exp", null: false
@@ -456,6 +482,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_01_000004) do
   add_foreign_key "audit_events", "users", column: "actor_user_id", name: "fk_audit_events_actor_user", on_delete: :nullify
   add_foreign_key "certificados", "personas_autorizadas", column: "persona_autorizada_id", name: "fk_certificados_personas_autorizadas"
   add_foreign_key "documento_descuentos_recargos_globales", "documento_emitidos", name: "fk_doc_dr_globales_documento_emitidos", on_delete: :cascade
+  add_foreign_key "documento_emitido_referencias", "documento_emitidos", column: "documento_emitido_origen_id", name: "fk_doc_emitido_referencias_origen", on_delete: :nullify
+  add_foreign_key "documento_emitido_referencias", "documento_emitidos", name: "fk_doc_emitido_referencias_documento", on_delete: :cascade
+  add_foreign_key "documento_emitido_referencias", "tipo_referencia_documentos", name: "fk_doc_emitido_referencias_tipo"
   add_foreign_key "documento_emitidos", "clientes", name: "fk_dtev_documentos_dte_clientes"
   add_foreign_key "documento_emitidos", "documento_emitidos", column: "asociado_id", name: "fk_documento_emitidos_documento_emitidos"
   add_foreign_key "documento_emitidos", "dte_envios", name: "documento_emitidos_dte_envio_id_fkey"

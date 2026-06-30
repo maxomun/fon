@@ -8,7 +8,8 @@ module Dte
       new(**params).call
     end
 
-    def initialize(empresa:, usuario:, tipo_documento:, receptor:, paginas:, items:, movimientos_globales_raw: nil)
+    def initialize(empresa:, usuario:, tipo_documento:, receptor:, paginas:, items:, movimientos_globales_raw: nil,
+                   referencias: nil)
       @empresa = empresa
       @usuario = usuario
       @tipo_documento = tipo_documento
@@ -16,6 +17,7 @@ module Dte
       @paginas = paginas
       @items = items
       @movimientos_globales_raw = movimientos_globales_raw
+      @referencias = referencias || []
     end
 
     def call
@@ -32,7 +34,8 @@ module Dte
 
     private
 
-    attr_reader :empresa, :usuario, :tipo_documento, :receptor, :paginas, :items, :movimientos_globales_raw
+    attr_reader :empresa, :usuario, :tipo_documento, :receptor, :paginas, :items, :movimientos_globales_raw,
+                :referencias
 
     def obtener_tipo_habilitado
       tipo_doc = TipoDocumento.find_by!(codigo: tipo_documento.to_s)
@@ -84,6 +87,7 @@ module Dte
       end
 
       persistir_descuentos_recargos_globales(documento, items_pagina, pagina)
+      persistir_referencias(documento, pagina)
 
       documento
     end
@@ -108,6 +112,17 @@ module Dte
         DocumentoDescuentoRecargoGlobal.crear_desde_hash!(
           documento_emitido: documento,
           movimiento: movimiento
+        )
+      end
+    end
+
+    def persistir_referencias(documento, pagina)
+      refs = pagina[:referencias].nil? ? referencias : pagina[:referencias]
+
+      Array(refs).each do |referencia|
+        DocumentoEmitidoReferencia.crear_desde_hash!(
+          documento_emitido: documento,
+          referencia: referencia
         )
       end
     end

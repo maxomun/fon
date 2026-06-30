@@ -4,6 +4,14 @@ import type { Producto } from '@/features/productos/types/producto.types'
 export const FACTURA_ELECTRONICA_CODIGO = '33'
 
 export const MAX_MOVIMIENTOS_GLOBALES = 20
+export const MAX_REFERENCIAS = 40
+
+export const EMISION_CODIGO_REFERENCIA_OPCIONES = [
+  { value: '1', label: '1 — Anula documento' },
+  { value: '2', label: '2 — Corrige texto' },
+  { value: '3', label: '3 — Corrige montos' },
+  { value: '4', label: '4 — Anulación masiva' },
+] as const
 
 export type EmisionTipoMovimiento = 'D' | 'R'
 export type EmisionTipoValorGlobal = 'PORCENTAJE' | 'MONTO'
@@ -61,6 +69,33 @@ export interface EmisionDescuentoRecargoGlobalRequest {
   aplica_sobre: EmisionAplicaSobre
 }
 
+export interface EmisionReferencia {
+  key: string
+  tipo_documento_referencia: string
+  folio_referencia: string
+  fecha_referencia: string
+  razon_referencia: string
+  codigo_referencia: string
+  documento_emitido_origen_id: number | null
+}
+
+export interface EmisionReferenciaRequest {
+  tipo_documento_referencia: string
+  folio_referencia: string
+  fecha_referencia: string
+  razon_referencia?: string
+  codigo_referencia?: number
+  documento_emitido_origen_id?: number
+}
+
+export interface EmisionReferenciaDesdeDocumento {
+  documento_emitido_origen_id: number
+  tipo_documento_referencia: string
+  folio_referencia: string
+  fecha_referencia: string
+  razon_referencia?: string
+}
+
 export interface EmisionMovimientoGlobalCalculado {
   nro_linea: number
   tipo_movimiento: EmisionTipoMovimiento
@@ -84,6 +119,7 @@ export interface EmisionGenerarRequest {
   receptor: EmisionReceptor
   items: EmisionItemRequest[]
   descuentos_recargos_globales?: EmisionDescuentoRecargoGlobalRequest[]
+  referencias?: EmisionReferenciaRequest[]
   enviar_sii?: boolean
 }
 
@@ -189,5 +225,23 @@ export function emptyEmisionDescuentoRecargoGlobal(): EmisionDescuentoRecargoGlo
     tipo_valor: 'PORCENTAJE',
     valor: '',
     aplica_sobre: 'AFECTO',
+  }
+}
+
+function fechaHoyIsoLocal(): string {
+  const fecha = new Date()
+  const pad = (valor: number) => String(valor).padStart(2, '0')
+  return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}`
+}
+
+export function emptyEmisionReferencia(): EmisionReferencia {
+  return {
+    key: crypto.randomUUID(),
+    tipo_documento_referencia: '',
+    folio_referencia: '',
+    fecha_referencia: fechaHoyIsoLocal(),
+    razon_referencia: '',
+    codigo_referencia: '',
+    documento_emitido_origen_id: null,
   }
 }

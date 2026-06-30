@@ -5,6 +5,7 @@ module Api
     class DteController < BaseController
       include DteAuditable
       include DteDescuentosRecargosParams
+      include DteReferenciasParams
 
       # Orquesta el pipeline de emisión DTE en etapas reutilizables:
       #
@@ -544,7 +545,8 @@ module Api
             receptor: params[:receptor],
             paginas: resultado[:resultado_folios][:paginas],
             items: resultado[:items_clasificados],
-            movimientos_globales_raw: descuentos_recargos_globales_raw
+            movimientos_globales_raw: descuentos_recargos_globales_raw,
+            referencias: referencias_normalizadas
           )
 
           unless resultado_persistencia[:success]
@@ -622,7 +624,7 @@ module Api
             resultado_persistencia: resultado_persistencia,
             resultado_envio: resultado_envio,
             resultado_pdfs: resultado_pdfs
-          )
+          ).merge(referencias_count: referencias_normalizadas.size)
         )
 
         render json: respuesta_generar(resultado, resultado_persistencia, resultado_archivo, resultado_envio, resultado_pdfs),
@@ -924,6 +926,7 @@ module Api
         end
 
         errores.concat(errores_estructura_descuentos_recargos_globales)
+        errores.concat(errores_referencias_dte)
 
         errores
       end
@@ -998,6 +1001,7 @@ module Api
       # Cada página queda con sus ítems filtrados y totales calculados independientemente.
       def construir_estructura_dte(empresa:, receptor:, tipo_documento:, items:, paginas:)
         fecha_emision = Time.current.in_time_zone(Rails.application.config.sii.timezone)
+        referencias = referencias_normalizadas
 
         {
           emisor: {
@@ -1021,6 +1025,7 @@ module Api
             fecha_emision: fecha_emision.strftime('%Y-%m-%d'),
             timestamp: fecha_emision.strftime('%Y-%m-%dT%H:%M:%S')
           },
+          referencias: referencias,
           paginas: paginas.map do |pg|
             items_pagina = items.select { |i| i[:pagina] == pg[:pagina] }
             resultado_pagina = calcular_pagina_dte(items_pagina: items_pagina)
@@ -1036,7 +1041,8 @@ module Api
               archivo_caf: pg[:archivo_caf],
               items: items_pagina,
               totales: resultado_pagina[:totales],
-              descuentos_recargos_globales: resultado_pagina[:descuentos_recargos_globales]
+              descuentos_recargos_globales: resultado_pagina[:descuentos_recargos_globales],
+              referencias: referencias
             }
           end
         }

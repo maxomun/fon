@@ -15,6 +15,7 @@ class DocumentoEmitido < ApplicationRecord
   has_many :documento_descuentos_recargos_globales,
            class_name: 'DocumentoDescuentoRecargoGlobal',
            dependent: :destroy
+  has_many :documento_emitido_referencias, dependent: :destroy
   has_one_attached :pdf
 
   # Validaciones

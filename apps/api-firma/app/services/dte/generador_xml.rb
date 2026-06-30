@@ -130,6 +130,7 @@ module Dte
         construir_encabezado(xml, pagina[:folio], totales)
         construir_detalles(xml, items)
         construir_descuentos_recargos_globales(xml, pagina)
+        construir_referencias(xml, pagina)
         # TED incluye datos resumidos del DTE; la firma del timbre se agrega en Dte::Firmador
         construir_timbre_electronico(xml, pagina[:folio], totales, items)
         xml.TmstFirma documento[:timestamp]
@@ -245,6 +246,32 @@ module Dte
       return valor.to_i if valor == valor.to_i
 
       valor
+    end
+
+    # Referencias SII (<Referencia>) — después de DscRcgGlobal, antes de TED.
+    def construir_referencias(xml, pagina)
+      referencias = Array(pagina[:referencias])
+      return if referencias.empty?
+
+      referencias.each do |referencia_raw|
+        referencia = normalizar_referencia(referencia_raw)
+        xml.Referencia do
+          xml.NroLinRef referencia[:nro_linea]
+          xml.TpoDocRef referencia[:tipo_documento_referencia]
+          xml.FolioRef escape_xml(truncar(referencia[:folio_referencia], 18))
+          xml.FchRef formatear_fecha(referencia[:fecha_referencia])
+          codigo = referencia[:codigo_referencia]
+          xml.CodRef codigo if codigo
+          razon = referencia[:razon_referencia].to_s.strip
+          xml.RazonRef escape_xml(truncar(razon, 90)) unless razon.empty?
+        end
+      end
+    end
+
+    def normalizar_referencia(raw)
+      return raw.transform_keys(&:to_sym) if raw.is_a?(Hash)
+
+      raw
     end
 
     def construir_codigo_item(xml, item)

@@ -1,18 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { dteService } from '@/features/emision/services/dteService'
+import { tipoReferenciaDocumentosService } from '@/features/emision/services/tipoReferenciaDocumentosService'
 import {
   emptyEmisionDescuentoRecargoGlobal,
   emptyEmisionLinea,
   emptyEmisionReceptor,
+  emptyEmisionReferencia,
   FACTURA_ELECTRONICA_CODIGO,
   MAX_MOVIMIENTOS_GLOBALES,
+  MAX_REFERENCIAS,
   type EmisionDescuentoRecargoGlobal,
   type EmisionGenerarResponse,
   type EmisionLinea,
   type EmisionMovimientoGlobalCalculado,
+  type EmisionReferencia,
+  type EmisionReferenciaDesdeDocumento,
   type EmisionReceptor,
   type EmisionTotales,
 } from '@/features/emision/types/emision.types'
+import type { TipoReferenciaDocumento } from '@/features/emision/types/tipoReferenciaDocumento.types'
 import {
   buildCalcularTotalesRequest,
   calcularTotalesEmision,
@@ -25,6 +32,13 @@ import {
   validarLineas,
   validarReceptor,
 } from '@/features/emision/utils/validarEmisionWizard'
+import {
+  razonReferenciaPorDefecto,
+} from '@/features/emision/utils/referenciaEmitidoInterno'
+import {
+  serializarReferenciasParaApi,
+  validarReferencias,
+} from '@/features/emision/utils/validarReferenciasEmision'
 import { empresaTiposHabilitadosService } from '@/features/empresas/services/empresaTiposHabilitadosService'
 import { empresasService } from '@/features/empresas/services/empresasService'
 import type { Empresa } from '@/features/empresas/types/empresa.types'
@@ -35,13 +49,21 @@ import { ApiError } from '@/services/apiClient'
 
 const PREVIEW_DEBOUNCE_MS = 400
 
+type EmisionWizardLocationState = {
+  referenciaDesdeDocumento?: EmisionReferenciaDesdeDocumento
+}
+
 export function useEmisionWizard(empresaId: number) {
+  const location = useLocation()
+  const referenciaInicialAplicada = useRef(false)
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [productos, setProductos] = useState<Producto[]>([])
   const [tipoFactura, setTipoFactura] = useState<TipoHabilitado | null>(null)
   const [receptor, setReceptor] = useState<EmisionReceptor>(emptyEmisionReceptor())
   const [lineas, setLineas] = useState<EmisionLinea[]>([emptyEmisionLinea()])
   const [globales, setGlobales] = useState<EmisionDescuentoRecargoGlobal[]>([])
+  const [referencias, setReferencias] = useState<EmisionReferencia[]>([])
+  const [tiposReferencia, setTiposReferencia] = useState<TipoReferenciaDocumento[]>([])
   const [movimientosCalculados, setMovimientosCalculados] = useState<
     EmisionMovimientoGlobalCalculado[]
   >([])
@@ -65,10 +87,12 @@ export function useEmisionWizard(empresaId: number) {
     setPageError(null)
 
     try {
-      const [empresaResponse, productosResponse, tiposResponse] = await Promise.all([
+      const [empresaResponse, productosResponse, tiposResponse, tiposReferenciaResponse] =
+        await Promise.all([
         empresasService.get(empresaId),
         productosService.list(empresaId, '', 'activos', 1),
         empresaTiposHabilitadosService.listAssigned(empresaId),
+        tipoReferenciaDocumentosService.list(),
       ])
 
       const factura = tiposResponse.data.find(
@@ -84,6 +108,7 @@ export function useEmisionWizard(empresaId: number) {
       setEmpresa(empresaResponse.data)
       setProductos(productosResponse.data)
       setTipoFactura(factura ?? null)
+      setTiposReferencia(tiposReferenciaResponse.data ?? [])
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -98,6 +123,34 @@ export function useEmisionWizard(empresaId: number) {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    const state = location.state as EmisionWizardLocationState | null
+    const referenciaInicial = state?.referenciaDesdeDocumento
+    if (!referenciaInicial || referenciaInicialAplicada.current) {
+      return
+    }
+
+    setReferencias([
+      {
+        key: crypto.randomUUID(),
+        tipo_documento_referencia: referenciaInicial.tipo_documento_referencia,
+        folio_referencia: referenciaInicial.folio_referencia,
+        fecha_referencia: referenciaInicial.fecha_referencia,
+        razon_referencia:
+          referenciaInicial.razon_referencia?.trim() ||
+          razonReferenciaPorDefecto(referenciaInicial.tipo_documento_referencia),
+        codigo_referencia: '',
+        documento_emitido_origen_id: referenciaInicial.documento_emitido_origen_id,
+      },
+    ])
+    referenciaInicialAplicada.current = true
+  }, [location.state])
+
+  const tiposReferenciaPorCodigo = useMemo(
+    () => new Map(tiposReferencia.map((tipo) => [tipo.codigo_sii, tipo])),
+    [tiposReferencia],
+  )
 
   const lineasCalculadas = useMemo(
     () => resolverLineasCalculadas(lineas, productos),
@@ -222,6 +275,27 @@ export function useEmisionWizard(empresaId: number) {
     [],
   )
 
+  const agregarReferencia = useCallback(() => {
+    setReferencias((current) => {
+      if (current.length >= MAX_REFERENCIAS) {
+        return current
+      }
+      return [...current, emptyEmisionReferencia()]
+    })
+  }, [])
+
+  const quitarReferencia = useCallback((key: string) => {
+    setReferencias((current) => current.filter((referencia) => referencia.key !== key))
+  }, [])
+
+  const actualizarReferencia = useCallback((key: string, patch: Partial<EmisionReferencia>) => {
+    setReferencias((current) =>
+      current.map((referencia) =>
+        referencia.key === key ? { ...referencia, ...patch } : referencia,
+      ),
+    )
+  }, [])
+
   const emitir = useCallback(async () => {
     setFormError(null)
     setResultado(null)
@@ -230,6 +304,7 @@ export function useEmisionWizard(empresaId: number) {
       ...validarReceptor(receptor),
       ...validarLineas(lineas),
       ...validarGlobales(globales),
+      ...validarReferencias(referencias, tiposReferenciaPorCodigo),
     ]
     if (errores.length > 0) {
       setFormError(errores.join(' '))
@@ -245,6 +320,7 @@ export function useEmisionWizard(empresaId: number) {
 
     try {
       const globalesApi = serializarGlobalesParaApi(globales)
+      const referenciasApi = serializarReferenciasParaApi(referencias)
 
       const response = await dteService.generar({
         empresa_id: empresaId,
@@ -262,6 +338,7 @@ export function useEmisionWizard(empresaId: number) {
           descuento_pct: Number(linea.descuento_pct) || 0,
         })),
         ...(globalesApi.length > 0 ? { descuentos_recargos_globales: globalesApi } : {}),
+        ...(referenciasApi.length > 0 ? { referencias: referenciasApi } : {}),
         enviar_sii: false,
       })
 
@@ -279,12 +356,14 @@ export function useEmisionWizard(empresaId: number) {
     } finally {
       setIsSubmitting(false)
     }
-  }, [empresaId, globales, lineas, receptor, tipoFactura])
+  }, [empresaId, globales, lineas, receptor, referencias, tipoFactura, tiposReferenciaPorCodigo])
 
   const reiniciar = useCallback(() => {
     setReceptor(emptyEmisionReceptor())
     setLineas([emptyEmisionLinea()])
     setGlobales([])
+    setReferencias([])
+    referenciaInicialAplicada.current = false
     setMovimientosCalculados([])
     setFormError(null)
     setResultado(null)
@@ -301,6 +380,8 @@ export function useEmisionWizard(empresaId: number) {
     lineasCalculadas,
     globales,
     movimientosCalculados,
+    referencias,
+    tiposReferencia,
     totales,
     totalesCalculando,
     totalesPreviewError,
@@ -315,6 +396,9 @@ export function useEmisionWizard(empresaId: number) {
     agregarGlobal,
     quitarGlobal,
     actualizarGlobal,
+    agregarReferencia,
+    quitarReferencia,
+    actualizarReferencia,
     emitir,
     reiniciar,
   }

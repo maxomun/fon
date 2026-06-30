@@ -28,7 +28,7 @@ module Dte
           receptor: receptor_payload,
           lineas: lineas_payload,
           globales: globales_payload,
-          referencias: [],
+          referencias: referencias_payload,
           totales: {
             neto_afecto: totales[:neto_afecto],
             neto_exento: totales[:neto_exento],
@@ -93,6 +93,31 @@ module Dte
             aplica_sobre: movimiento.aplica_sobre
           }
         end
+      end
+
+      def referencias_payload
+        documento.documento_emitido_referencias.ordenados.map do |referencia|
+          tipo = referencia.tipo_referencia_documento
+          {
+            tipo: etiqueta_tipo_referencia(tipo, referencia.codigo_referencia),
+            folio: referencia.folio_referencia,
+            fecha: formatear_fecha_referencia(referencia.fecha_referencia),
+            razon: referencia.razon_referencia.to_s.presence || '—'
+          }
+        end
+      end
+
+      def etiqueta_tipo_referencia(tipo, codigo_referencia)
+        etiqueta = "#{tipo.codigo_sii} — #{tipo.nombre}"
+        return etiqueta if codigo_referencia.blank?
+
+        "#{etiqueta} (Cod. ref. #{codigo_referencia})"
+      end
+
+      def formatear_fecha_referencia(fecha)
+        return '—' if fecha.blank?
+
+        fecha.strftime('%d-%m-%Y')
       end
 
       def etiqueta_valor(movimiento)

@@ -91,6 +91,7 @@ Archivos: `producto.types.ts` (`productoDuplicadoInput`), `ProductoRowActions.ts
 - Wizard `/empresas/:id/emitir` → `/empresas/:id/emitir/nuevo`
 - Receptor, líneas por producto, descuentos/recargos globales, preview totales, generación firmada.
 - Pipeline API: preparar → folios → XML → firmar → persistir → PDF.
+- **Referencias SII (`<Referencia>`):** diseñado, no implementado. Ver `api-firma/docs/REFERENCIAS_DTE_FASES.md` y SQL en `db/manual/tipo_referencia_documentos.sql` + `documento_emitido_referencias.sql`.
 
 ---
 

@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { Alert, LoadingScreen } from '@/components/ui'
 import { EmisionGlobalesEditor } from '@/features/emision/components/EmisionGlobalesEditor'
 import { EmisionLineasEditor } from '@/features/emision/components/EmisionLineasEditor'
+import { EmisionReferenciasEditor } from '@/features/emision/components/EmisionReferenciasEditor'
 import { EmisionReceptorForm } from '@/features/emision/components/EmisionReceptorForm'
 import { EmisionResultadoPanel } from '@/features/emision/components/EmisionResultadoPanel'
 import { EmisionWizardStickyFooter } from '@/features/emision/components/EmisionWizardStickyFooter'
@@ -24,6 +25,8 @@ export function EmpresaEmitirWizardPage() {
     lineasCalculadas,
     globales,
     movimientosCalculados,
+    referencias,
+    tiposReferencia,
     totales,
     totalesCalculando,
     totalesPreviewError,
@@ -38,6 +41,9 @@ export function EmpresaEmitirWizardPage() {
     agregarGlobal,
     quitarGlobal,
     actualizarGlobal,
+    agregarReferencia,
+    quitarReferencia,
+    actualizarReferencia,
     emitir,
     reiniciar,
   } = useEmisionWizard(empresaId)
@@ -145,6 +151,19 @@ export function EmpresaEmitirWizardPage() {
               onAdd={agregarGlobal}
               onRemove={quitarGlobal}
               onChange={actualizarGlobal}
+            />
+          </section>
+
+          <section className="panel-card emision-wizard__section emision-wizard__section--referencias">
+            <EmisionReferenciasEditor
+              empresaId={empresaId}
+              rutReceptor={receptor.rut}
+              referencias={referencias}
+              tiposReferencia={tiposReferencia}
+              disabled={isSubmitting}
+              onAdd={agregarReferencia}
+              onRemove={quitarReferencia}
+              onChange={actualizarReferencia}
             />
           </section>
 
