@@ -93,6 +93,57 @@ export function productoToInput(producto: Producto): ProductoInput {
   }
 }
 
+const PRODUCTO_CODIGO_MAX_LENGTH = 50
+const PRODUCTO_NOMBRE_MAX_LENGTH = 250
+const PRODUCTO_COPIA_SUFFIX = '_copia'
+
+function truncarTexto(value: string, maxLength: number) {
+  return value.length <= maxLength ? value : value.slice(0, maxLength)
+}
+
+export function codigoProductoCopia(codigo: string, codigosExistentes: Iterable<string>) {
+  const existentes = new Set(codigosExistentes)
+  const base = truncarTexto(
+    `${codigo}${PRODUCTO_COPIA_SUFFIX}`,
+    PRODUCTO_CODIGO_MAX_LENGTH,
+  )
+
+  if (!existentes.has(base)) {
+    return base
+  }
+
+  for (let numero = 2; numero <= 99; numero += 1) {
+    const sufijo = `${PRODUCTO_COPIA_SUFFIX}_${numero}`
+    const prefijo = codigo.slice(0, PRODUCTO_CODIGO_MAX_LENGTH - sufijo.length)
+    const candidato = `${prefijo}${sufijo}`
+
+    if (!existentes.has(candidato)) {
+      return candidato
+    }
+  }
+
+  return truncarTexto(`${codigo}${PRODUCTO_COPIA_SUFFIX}`, PRODUCTO_CODIGO_MAX_LENGTH - 4) +
+    `_${Date.now().toString().slice(-3)}`
+}
+
+export function nombreProductoCopia(nombre: string) {
+  return truncarTexto(`${nombre}${PRODUCTO_COPIA_SUFFIX}`, PRODUCTO_NOMBRE_MAX_LENGTH)
+}
+
+export function productoDuplicadoInput(
+  producto: Producto,
+  codigosExistentes: Iterable<string>,
+): ProductoInput {
+  const base = productoToInput(producto)
+
+  return {
+    ...base,
+    codigo: codigoProductoCopia(producto.codigo, codigosExistentes),
+    nombre: nombreProductoCopia(producto.nombre),
+    activo: true,
+  }
+}
+
 export function productoPayload(input: ProductoInput) {
   return {
     producto: {

@@ -60,6 +60,7 @@ export function EmpresaProductosPage() {
   const [productoToDelete, setProductoToDelete] = useState<Producto | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [duplicatingProductoId, setDuplicatingProductoId] = useState<number | null>(null)
   const { isSelected, select } = useTableRowSelection()
 
   const loadData = useCallback(async () => {
@@ -152,6 +153,23 @@ export function EmpresaProductosPage() {
       setFormError(error instanceof ApiError ? error.message : 'No se pudo actualizar el producto')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleDuplicate(producto: Producto) {
+    setDuplicatingProductoId(producto.id)
+    setListError(null)
+
+    try {
+      const codigosExistentes = productos.map((item) => item.codigo)
+      const response = await productosService.duplicate(empresaId, producto, codigosExistentes)
+      setSuccessMessage(response.message ?? 'Producto duplicado exitosamente')
+      select(response.data.id)
+      await loadData()
+    } catch (error) {
+      setListError(error instanceof ApiError ? error.message : 'No se pudo duplicar el producto')
+    } finally {
+      setDuplicatingProductoId(null)
     }
   }
 
@@ -291,7 +309,9 @@ export function EmpresaProductosPage() {
                           <ProductoRowActions
                             producto={producto}
                             canEdit={canEdit}
+                            isDuplicating={duplicatingProductoId === producto.id}
                             onEdit={openEditModal}
+                            onDuplicate={(item) => void handleDuplicate(item)}
                             onDelete={openDeleteModal}
                           />
                         </td>

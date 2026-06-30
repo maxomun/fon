@@ -1,13 +1,14 @@
 import { authenticatedClient } from '@/services/authenticatedClient'
 import type {
   ImpuestosDisponiblesResponse,
+  Producto,
   ProductoActivoFiltro,
   ProductoDeleteResponse,
   ProductoInput,
   ProductoResponse,
   ProductosListResponse,
 } from '@/features/productos/types/producto.types'
-import { productoPayload } from '@/features/productos/types/producto.types'
+import { productoDuplicadoInput, productoPayload } from '@/features/productos/types/producto.types'
 
 function baseUrl(empresaId: number) {
   return `/api/v1/empresas/${empresaId}/productos`
@@ -50,6 +51,10 @@ export const productosService = {
 
   create(empresaId: number, input: ProductoInput) {
     return authenticatedClient.post<ProductoResponse>(baseUrl(empresaId), productoPayload(input))
+  },
+
+  duplicate(empresaId: number, producto: Producto, codigosExistentes: Iterable<string>) {
+    return this.create(empresaId, productoDuplicadoInput(producto, codigosExistentes))
   },
 
   update(empresaId: number, productoId: number, input: ProductoInput) {
